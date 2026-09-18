@@ -13,7 +13,8 @@ h1{margin:0 0 6px;font-size:28px} .sub{color:#666;margin-bottom:20px}
 .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 button,select,input{font:inherit}
 button{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;background:#111;color:white}
-button.secondary{background:#e9eaee;color:#111}
+button.secondary{background:#fff;color:#111;border:1px solid #d5d7dc}
+button.active-tab{background:#111;color:#fff;border:0}
 button.small{padding:8px 10px;font-size:14px}
 .panel{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 12px #0000000d;margin-bottom:16px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
@@ -52,7 +53,7 @@ th{font-size:13px;color:#666}
   <div class="sub">Scheda personalizzata · dati salvati su questo dispositivo</div>
 
   <div class="tabs">
-    <button id="workoutTab">🏋️ Allenamento</button>
+    <button id="workoutTab" class="active-tab">🏋️ Allenamento</button>
     <button id="progressTab" class="secondary">📈 Progressi</button>
   </div>
 
@@ -199,15 +200,24 @@ function renderHistory(){
 function renderProgress(){
   const sel=$("progressExercise");
   const old=sel.value;
-  sel.innerHTML=allExercises().map(e=>`<option value="${e}">${e}</option>`).join("");
-  if(old && allExercises().includes(old)) sel.value=old;
+  sel.innerHTML = WORKOUTS.slice().sort((a,b)=>a.day-b.day).map(w =>
+    `<optgroup label="Giorno ${w.day}">` +
+    w.exercises.map(e => `<option value="${e[0]}" data-day="${w.day}">${e[0]}</option>`).join("") +
+    `</optgroup>`
+  ).join("");
+  if(old) {
+    const matching = [...sel.options].find(o => o.value === old);
+    if(matching) sel.value = old;
+  }
   const ex=sel.value;
+  const selectedOption=sel.options[sel.selectedIndex];
+  const selectedDay=selectedOption ? Number(selectedOption.dataset.day) : null;
   const points=[];
   history.forEach(r=>{
     const w=WORKOUTS.find(x=>x.day===r.day);
     if(!w || !r.loads) return;
     w.exercises.forEach((e,i)=>{
-      if(e[0]===ex && r.loads[i] != null) points.push({date:r.date,value:Number(r.loads[i])});
+      if(e[0]===ex && r.day===selectedDay && r.loads[i] != null) points.push({date:r.date,value:Number(r.loads[i])});
     });
   });
   points.sort((a,b)=>a.date.localeCompare(b.date));
@@ -284,8 +294,23 @@ function saveEdited(){
 }
 
 $("daySelect").addEventListener("change",e=>{currentDay=Number(e.target.value);renderWorkout();});
-$("workoutTab").addEventListener("click",()=>{$("workoutView").classList.remove("hidden");$("progressView").classList.add("hidden");});
-$("progressTab").addEventListener("click",()=>{$("workoutView").classList.add("hidden");$("progressView").classList.remove("hidden");renderProgress();});
+$("workoutTab").addEventListener("click",()=>{
+  $("workoutView").classList.remove("hidden");
+  $("progressView").classList.add("hidden");
+  $("workoutTab").classList.add("active-tab");
+  $("workoutTab").classList.remove("secondary");
+  $("progressTab").classList.remove("active-tab");
+  $("progressTab").classList.add("secondary");
+});
+$("progressTab").addEventListener("click",()=>{
+  $("workoutView").classList.add("hidden");
+  $("progressView").classList.remove("hidden");
+  $("progressTab").classList.add("active-tab");
+  $("progressTab").classList.remove("secondary");
+  $("workoutTab").classList.remove("active-tab");
+  $("workoutTab").classList.add("secondary");
+  renderProgress();
+});
 $("progressExercise").addEventListener("change",renderProgress);
 $("editDateButton").addEventListener("click",()=>openEditor(today()));
 $("closeEditor").addEventListener("click",closeEditor);

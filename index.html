@@ -23,47 +23,157 @@ summary{list-style:none;padding:17px;font-weight:800;font-size:18px}.table{overf
 <div id="workoutView"><section class="selector"><label>GIORNO DI ALLENAMENTO</label><select id="day"><option value="">Seleziona un giorno…</option><option value="0">Giorno 1</option><option value="1">Giorno 2</option><option value="2">Giorno 3</option><option value="3">Giorno 4</option></select></section>
 <section id="datebar" class="datebar hidden"><div><div class="eyebrow">DATA SESSIONE</div><strong id="today"></strong></div><div id="saved" class="saved">Salvataggio automatico</div></section><section id="panel"></section></div>
 <div id="progressView" class="progressView hidden"><section class="progress"><div class="eyebrow">STORICO CARICHI</div><h2 style="margin:5px 0 14px">Progressi</h2><select id="progressExercise"></select><div id="chart" class="chart"></div><div id="records" class="records"></div></section></div>
-</main><script>const WORKOUTS=[{"day": "GIORNO 1", "exercises": [{"name": "Panca inclinata 30 bilanciere", "sets": "4x8", "rest": "1’30’’/2’", "video": "https://vm.tiktok.com/ZGdQmw1Ex/"}, {"name": "Military press bilanciere", "sets": "4x8", "rest": "1’30’’/2’", "video": "https://vm.tiktok.com/ZGdQmve6p/"}, {"name": "Distensioni manubri panca piana", "sets": "4x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQm3fWo/"}, {"name": "Alzate laterali singole al cavo", "sets": "4x8", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQm7xu2/"}, {"name": "Chest press", "sets": "4x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQm7nSA/"}, {"name": "Shoulder press", "sets": "4x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQmno3r/"}, {"name": "Croci ai cavi alti", "sets": "3xmax", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQmTXda/"}, {"name": "Push up", "sets": "3x12", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQms2sN/"}]}, {"day": "GIORNO 2", "exercises": [{"name": "Lat machine", "sets": "4x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQmorHu/"}, {"name": "Pulley barra larga", "sets": "3x8", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQm75H5/"}, {"name": "Rowing machine braccio singolo", "sets": "3x8", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQm3ejY/"}, {"name": "Pulley triangolo", "sets": "3x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQmthQd/"}, {"name": "Pull up", "sets": "4x4", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQmTVXx/"}, {"name": "Raise alla sbarra", "sets": "3x12", "rest": "1’", "video": "https://vm.tiktok.com/ZGdQmwXUq/"}]}, {"day": "GIORNO 3", "exercises": [{"name": "Curl alternato in piedi", "sets": "4x8", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQuet9w/"}, {"name": "French press seduto braccio singolo", "sets": "4x8", "rest": "1’", "video": "https://vm.tiktok.com/ZGdQuNFuB/"}, {"name": "Curl bicipiti cavo basso corda", "sets": "4x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQu2UyY/"}, {"name": "Push down barra dritta", "sets": "4x10/12", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQm3LN3/"}, {"name": "Panca scott", "sets": "4x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQu1Ryo/"}, {"name": "Push down corda", "sets": "4x10", "rest": "1’/1’30’’", "video": "https://vm.tiktok.com/ZGdQmGL1Y/"}, {"name": "Push up", "sets": "3x12", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQudL9g/"}]}, {"day": "GIORNO 4", "exercises": [{"name": "Alzate laterali", "sets": "4x10", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQuLxBD/"}, {"name": "Front lever tuck", "sets": "4x4’’", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQmshJQ/"}, {"name": "Croci ai cavi bassi", "sets": "3x12", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQu2dF4/"}, {"name": "Pull up", "sets": "4x4", "rest": "1’30’’", "video": "https://vm.tiktok.com/ZGdQmEWjF/"}, {"name": "Raise alla sbarra", "sets": "3x12", "rest": "1’", "video": "https://vm.tiktok.com/ZGdQu2uke/"}, {"name": "Crunch", "sets": "3x20", "rest": "1’", "video": "https://vm.tiktok.com/ZGdQmGRHk/"}]}];
-const workouts=WORKOUTS, KEY='riccardo_workout_history_v3';
-const day=document.getElementById('day'), panel=document.getElementById('panel'), datebar=document.getElementById('datebar'), today=document.getElementById('today'), saved=document.getElementById('saved');
-const tabWorkout=document.getElementById('tabWorkout'), tabProgress=document.getElementById('tabProgress'), workoutView=document.getElementById('workoutView'), progressView=document.getElementById('progressView');
-const progressExercise=document.getElementById('progressExercise'), chart=document.getElementById('chart'), records=document.getElementById('records');
-const db=()=>JSON.parse(localStorage.getItem(KEY)||'[]'); const save=x=>localStorage.setItem(KEY,JSON.stringify(x));
-const iso=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
-const it=d=>{const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0]};
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-function renderWorkout(i){
- if(i===''){panel.innerHTML='';datebar.classList.add('hidden');return}
- const idx=+i,w=workouts[idx],date=iso();
- datebar.classList.remove('hidden');today.textContent=it(date);
- const old=db().find(x=>x.date===date&&x.day===idx);
- panel.innerHTML='<div class="day"><summary>'+esc(w.day)+'</summary><div class="table"><div class="th"><div>ESERCIZIO</div><div>SERIE × REP</div><div>RECUPERO</div><div>CARICO (kg)</div><div>VIDEO</div></div>'+
- w.exercises.map((e,j)=>{const val=old?.loads?.[j]??'';return '<div class="row"><div class="name">'+esc(e.name)+'</div><div>'+esc(e.sets)+'</div><div>'+esc(e.rest)+'</div><div><input class="load" inputmode="decimal" placeholder="es. 20" value="'+esc(val)+'" data-j="'+j+'"></div><div><a class="video" href="'+e.video+'" target="_blank" rel="noopener">🎥</a></div></div>'}).join('')+'</div></div><div class="note">💾 Il carico per esercizio viene salvato automaticamente con la data di oggi.</div>';
- panel.querySelectorAll('.load').forEach(inp=>inp.addEventListener('input',()=>saveLoad(idx,inp.dataset.j,inp.value)));
+</main>
+<script>
+const WORKOUTS = [
+  {day:1, exercises:[
+    ["Panca inclinata 30° bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmw1Ex/"],
+    ["Military press bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmve6p/"],
+    ["Distensioni manubri panca piana","4x10","1’30’’","https://vm.tiktok.com/ZGdQm3fWo/"],
+    ["Alzate laterali singole al cavo","4x8","1’30’’","https://vm.tiktok.com/ZGdQm7xu2/"],
+    ["Chest press","4x10","1’30’’","https://vm.tiktok.com/ZGdQm7nSA/"],
+    ["Shoulder press","4x10","1’30’’","https://vm.tiktok.com/ZGdQmno3r/"],
+    ["Croci ai cavi alti","3xmax","1’30’’","https://vm.tiktok.com/ZGdQmTXda/"],
+    ["Push up","3x12","1’30’’","https://vm.tiktok.com/ZGdQms2sN/"]
+  ]},
+  {day:2, exercises:[
+    ["Lat machine","4x10","1’30’’","https://vm.tiktok.com/ZGdQmorHu/"],
+    ["Pulley barra larga","3x8","1’30’’","https://vm.tiktok.com/ZGdQm75H5/"],
+    ["Rowing machine braccio singolo","3x8","1’30’’","https://vm.tiktok.com/ZGdQm3ejY/"],
+    ["Pulley triangolo","3x10","1’30’’","https://vm.tiktok.com/ZGdQmthQd/"],
+    ["Pull up","4x4","1’30’’","https://vm.tiktok.com/ZGdQmTVXx/"],
+    ["Raise alla sbarra","3x12","1’","https://vm.tiktok.com/ZGdQmwXUq/"]
+  ]},
+  {day:3, exercises:[
+    ["Curl alternato in piedi","4x8","1’30’’","https://vm.tiktok.com/ZGdQuet9w/"],
+    ["French press seduto braccio singolo","4x8","1’","https://vm.tiktok.com/ZGdQuNFuB/"],
+    ["Curl bicipiti cavo basso corda","4x10","1’30’’","https://vm.tiktok.com/ZGdQu2UyY/"],
+    ["Push down barra dritta","4x10/12","1’30’’","https://vm.tiktok.com/ZGdQm3LN3/"],
+    ["Panca scott","4x10","1’","https://vm.tiktok.com/ZGdQu1Ryo/"],
+    ["Push down corda","4x10","1’/1’30’’","https://vm.tiktok.com/ZGdQmGL1Y/"],
+    ["Push up","3x12","1’30’’","https://vm.tiktok.com/ZGdQudL9g/"]
+  ]},
+  {day:4, exercises:[
+    ["Alzate laterali","4x10","1’30’’","https://vm.tiktok.com/ZGdQuLxBD/"],
+    ["Front lever tuck","4x4’’","1’30’’","https://vm.tiktok.com/ZGdQmshJQ/"],
+    ["Croci ai cavi bassi","3x12","1’30’’","https://vm.tiktok.com/ZGdQu2dF4/"],
+    ["Pull up","4x4","1’30’’","https://vm.tiktok.com/ZGdQmEWjF/"],
+    ["Raise alla sbarra","3x12","1’","https://vm.tiktok.com/ZGdQu2uke/"],
+    ["Crunch","3x20","1’","https://vm.tiktok.com/ZGdQmGRHk/"]
+  ]}
+];
+
+const KEY="riccardo_workout_history_v4";
+let history=JSON.parse(localStorage.getItem(KEY)||"[]");
+let currentDay=1;
+
+const $=id=>document.getElementById(id);
+function today(){return new Date().toISOString().slice(0,10);}
+function save(){localStorage.setItem(KEY,JSON.stringify(history));}
+function fmt(d){return new Date(d+"T00:00:00").toLocaleDateString("it-IT");}
+function exList(){
+  return [...new Set(WORKOUTS.flatMap(w=>w.exercises.map(e=>e[0])))];
 }
-function saveLoad(dayIdx,j,value){
- const date=iso(), all=db(); let r=all.find(x=>x.date===date&&x.day===dayIdx);
- if(!r){r={date,day:dayIdx,loads:{}};all.push(r)}
- r.loads[j]=value; save(all);
- saved.textContent='✓ Salvato'; setTimeout(()=>saved.textContent='Salvataggio automatico',900); renderProgressOptions();
+function renderWorkout(){
+  const w=WORKOUTS.find(x=>x.day===currentDay);
+  $("dayTitle").textContent=`Giorno ${currentDay}`;
+  const rec=history.find(r=>r.date===today()&&r.day===currentDay);
+  $("exerciseRows").innerHTML=w.exercises.map((e,i)=>{
+    const val=rec?.loads?.[i] ?? "";
+    return `<tr>
+      <td>${e[0]}</td><td>${e[1]}</td><td>${e[2]}</td>
+      <td><input class="load" type="number" min="0" step="0.5" data-i="${i}" value="${val}" placeholder="kg"></td>
+      <td><a class="video" href="${e[3]}" target="_blank" rel="noopener">Video</a></td>
+    </tr>`;
+  }).join("");
+  document.querySelectorAll(".load").forEach(inp=>inp.addEventListener("input",()=>{
+    let r=history.find(x=>x.date===today()&&x.day===currentDay);
+    if(!r){r={date:today(),day:currentDay,loads:{}};history.push(r);}
+    const v=inp.value;
+    if(v==="") delete r.loads[inp.dataset.i]; else r.loads[inp.dataset.i]=Number(v);
+    save(); renderHistory();
+  }));
 }
-function allExercises(){
- return workouts.flatMap((w,wi)=>w.exercises.map((e,ei)=>({key:wi+'_'+ei,name:e.name,wi,ei})));
-}
-function renderProgressOptions(){
- progressExercise.innerHTML=allExercises().map(e=>'<option value="'+e.key+'">'+esc(e.name)+'</option>').join('');
- renderProgress();
+function renderHistory(){
+  const dates=[...new Set(history.map(r=>r.date))].sort().reverse();
+  $("historyList").innerHTML=dates.length ? dates.map(d=>{
+    const days=history.filter(r=>r.date===d).map(r=>`Giorno ${r.day}`).join(", ");
+    return `<div class="hist-row"><b>${fmt(d)}</b><span>${days}</span></div>`;
+  }).join("") : `<div class="empty">Nessun allenamento salvato.</div>`;
 }
 function renderProgress(){
- const [wi,ei]=progressExercise.value.split('_').map(Number), name=workouts[wi]?.exercises[ei]?.name;
- const pts=db().filter(r=>r.day===wi&&r.loads&&r.loads[ei]!==undefined&&String(r.loads[ei]).trim()!=='').map(r=>({date:r.date,value:parseFloat(String(r.loads[ei]).replace(',','.'))})).filter(x=>Number.isFinite(x.value)).sort((a,b)=>a.date.localeCompare(b.date));
- if(!pts.length){chart.innerHTML='<div class="empty">Nessun carico salvato per questo esercizio.</div>';records.innerHTML='';return}
- const max=Math.max(...pts.map(p=>p.value),1);
- chart.innerHTML=pts.map(p=>'<div class="barbox"><div class="barval">'+p.value+' kg</div><div class="bar" style="height:'+Math.max(3,(p.value/max)*175)+'px"></div><div class="bardate">'+it(p.date)+'</div></div>').join('');
- records.innerHTML=pts.slice().reverse().map(p=>'<div class="record"><strong>'+it(p.date)+'</strong><span>'+p.value+' kg</span></div>').join('');
+  const sel=$("progressExercise");
+  if(!sel.options.length) sel.innerHTML=exList().map(e=>`<option>${e}</option>`).join("");
+  const ex=sel.value;
+  const points=[];
+  history.forEach(r=>{
+    const w=WORKOUTS.find(x=>x.day===r.day);
+    if(!w) return;
+    w.exercises.forEach((e,i)=>{
+      if(e[0]===ex && r.loads && r.loads[i]!==undefined)
+        points.push({date:r.date,value:Number(r.loads[i])});
+    });
+  });
+  points.sort((a,b)=>a.date.localeCompare(b.date));
+  const max=Math.max(...points.map(p=>p.value),10);
+  const width=760,height=300,padL=55,padR=20,padT=25,padB=45;
+  let svg=`<svg viewBox="0 0 ${width} ${height}" class="chart" role="img" aria-label="Progressi per ${ex}">`;
+  for(let i=0;i<=4;i++){
+    const y=padT+(height-padT-padB)*(1-i/4);
+    const v=(max*i/4).toFixed(1).replace(".0","");
+    svg+=`<line x1="${padL}" y1="${y}" x2="${width-padR}" y2="${y}" class="grid"></line><text x="${padL-8}" y="${y+4}" text-anchor="end" class="axis">${v}</text>`;
+  }
+  if(points.length){
+    const xStep=(width-padL-padR)/Math.max(points.length-1,1);
+    const pts=points.map((p,i)=>{
+      const x=points.length===1?(width+padL-padR)/2:padL+i*xStep;
+      const y=padT+(height-padT-padB)*(1-p.value/max);
+      return {x,y,p};
+    });
+    svg+=`<polyline points="${pts.map(a=>`${a.x},${a.y}`).join(" ")}" class="line"></polyline>`;
+    pts.forEach(a=>svg+=`<circle cx="${a.x}" cy="${a.y}" r="5" class="dot"></circle><text x="${a.x}" y="${height-18}" text-anchor="middle" class="axis">${fmt(a.p.date)}</text>`);
+  } else {
+    svg+=`<text x="${width/2}" y="${height/2}" text-anchor="middle" class="emptyText">Inserisci dei carichi per vedere i progressi</text>`;
+  }
+  svg+=`</svg>`;
+  $("chartWrap").innerHTML=svg;
+  $("progressTable").innerHTML=points.length ? points.slice().reverse().map((p,i)=>`<div class="progress-row"><span>${fmt(p.date)}</span><b>${p.value} kg</b><button type="button" class="edit-date" data-date="${p.date}">Modifica</button></div>`).join("") : "";
+  document.querySelectorAll(".edit-date").forEach(b=>b.addEventListener("click",()=>openEditor(b.dataset.date)));
 }
-function showWorkout(){tabWorkout.classList.add('active');tabProgress.classList.remove('active');workoutView.classList.remove('hidden');progressView.classList.add('hidden')}
-function showProgress(){tabProgress.classList.add('active');tabWorkout.classList.remove('active');workoutView.classList.add('hidden');progressView.classList.remove('hidden');renderProgressOptions()}
-day.addEventListener('change',()=>renderWorkout(day.value)); tabWorkout.onclick=showWorkout; tabProgress.onclick=showProgress; progressExercise.onchange=renderProgress;
-renderWorkout(''); 
-</script></body></html>
+function openEditor(date){
+  const rows=history.filter(r=>r.date===date);
+  $("editDate").value=date;
+  $("editRows").innerHTML=WORKOUTS.flatMap(w=>w.exercises.map((e,i)=>{
+    const r=rows.find(x=>x.day===w.day);
+    const v=r?.loads?.[i] ?? "";
+    return `<div class="edit-item"><label>G${w.day} — ${e[0]}<input type="number" min="0" step="0.5" data-day="${w.day}" data-i="${i}" value="${v}" placeholder="kg"></label></div>`;
+  })).join("");
+  $("editModal").classList.add("show");
+}
+function closeEditor(){$("editModal").classList.remove("show");}
+function saveEdited(){
+  const date=$("editDate").value;
+  if(!date)return;
+  document.querySelectorAll("#editRows input").forEach(inp=>{
+    const day=Number(inp.dataset.day), i=Number(inp.dataset.i), v=inp.value;
+    let r=history.find(x=>x.date===date&&x.day===day);
+    if(v!==""){
+      if(!r){r={date,day,loads:{}};history.push(r);}
+      r.loads[i]=Number(v);
+    }else if(r?.loads?.[i]!==undefined){
+      delete r.loads[i];
+    }
+  });
+  history=history.filter(r=>Object.keys(r.loads||{}).length);
+  save(); closeEditor(); renderWorkout(); renderHistory(); renderProgress();
+}
+document.querySelectorAll("[data-day]").forEach(btn=>btn.addEventListener("click",()=>{currentDay=Number(btn.dataset.day);renderWorkout();}));
+$("progressExercise").addEventListener("change",renderProgress);
+$("openProgress").addEventListener("click",()=>{ $("workoutView").classList.add("hidden");$("progressView").classList.remove("hidden");renderProgress();});
+$("openWorkout").addEventListener("click",()=>{ $("progressView").classList.add("hidden");$("workoutView").classList.remove("hidden");});
+$("closeEditor").addEventListener("click",closeEditor);
+$("saveEditor").addEventListener("click",saveEdited);
+$("cancelEditor").addEventListener("click",closeEditor);
+
+renderWorkout(); renderHistory(); renderProgress();
+</script>

@@ -132,25 +132,24 @@ let supabase=null;
 let history=[], currentDay=1, isSignup=false, profile=null, clients=[];
 
 async function loadSupabase(){
-  if(window.supabase && typeof window.supabase.createClient==="function") return window.supabase;
+  if(window.supabase) return window.supabase;
   const urls=[
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
-    "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+    "https://unpkg.com/@supabase/supabase-js@2"
   ];
   for(const url of urls){
     try{
       await new Promise((resolve,reject)=>{
         const s=document.createElement("script");
         s.src=url;
-        s.async=true;
-        s.onload=()=>resolve();
-        s.onerror=()=>reject(new Error("script load failed"));
+        s.onload=resolve;
+        s.onerror=reject;
         document.head.appendChild(s);
       });
-      if(window.supabase && typeof window.supabase.createClient==="function") return window.supabase;
+      if(window.supabase) return window.supabase;
     }catch(e){}
   }
-  throw new Error("Non riesco a caricare Supabase. Controlla la connessione internet oppure prova a ricaricare la pagina.");
+  throw new Error("Non riesco a caricare il collegamento al database. Controlla la connessione internet.");
 }
 
 async function initSupabase(){
@@ -319,7 +318,6 @@ $("linkTrainer").onclick=async()=>{const {data,error}=await supabase.rpc("link_t
 $("connectClient").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("trainerClientCode").value.trim().toUpperCase()});msg("trainerMsg",error?error.message:"Cliente collegato.");if(!error)await loadClients();};
 $("clientSelect").onchange=e=>loadTrainerProgress(e.target.value);
 $("logout").onclick=async()=>{await supabase.auth.signOut();location.reload();};$("trainerLogout").onclick=async()=>{await supabase.auth.signOut();location.reload();};
-msg("authMsg","Connessione al database in corso...");
 initSupabase();
 </script>
 </body></html>

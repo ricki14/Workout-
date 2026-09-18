@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#09090b">
+  <title>Riccardo • Workout</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">PERSONAL WORKOUT</div>
+      <h1>Riccardo</h1>
+    </div>
+    <button id="editBtn" class="ghost-btn">Modifica video</button>
+  </header>
+
+  <main id="app"></main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-card">
+      <button id="closeModal" class="close-btn">×</button>
+      <div class="eyebrow" id="modalDay"></div>
+      <h2 id="modalTitle"></h2>
+      <div id="videoWrap" class="video-wrap">
+        <div class="video-placeholder">Inserisci il link TikTok per questo esercizio.</div>
+      </div>
+      <a id="openTikTok" class="secondary-btn hidden" target="_blank" rel="noopener">Apri su TikTok ↗</a>
+    </div>
+  </div>
+
+  <div id="editor" class="editor hidden">
+    <div class="editor-backdrop"></div>
+    <div class="editor-card">
+      <div class="editor-head">
+        <div>
+          <div class="eyebrow">V1 • SOLO PER TE</div>
+          <h2>Video degli esercizi</h2>
+        </div>
+        <button id="closeEditor" class="close-btn">×</button>
+      </div>
+      <p class="muted">Incolla il link TikTok accanto a ogni esercizio. I link vengono salvati nel browser con localStorage.</p>
+      <div id="editorList"></div>
+      <button id="saveBtn" class="primary-btn">Salva</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

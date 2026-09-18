@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Riccardo Workout</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f6f7f9}
 *{box-sizing:border-box}body{margin:0;padding:20px}.app{max-width:1000px;margin:auto}
@@ -36,7 +35,7 @@ th,td{padding:12px 8px;text-align:left;border-bottom:1px solid #eee}th{font-size
 <div id="authForm">
 <label>Email<br><input id="email" type="email" style="width:100%;margin:6px 0 10px"></label>
 <label>Password<br><input id="password" type="password" style="width:100%;margin:6px 0 10px"></label>
-<button id="authSubmit">Accedi</button>
+<button id="authSubmit" disabled>Accedi</button>
 <div id="authMsg"></div>
 </div>
 </div>
@@ -51,7 +50,7 @@ th,td{padding:12px 8px;text-align:left;border-bottom:1px solid #eee}th{font-size
 <section id="workoutView">
 <div class="panel"><div class="toolbar">
 <label><b>Giorno</b> <select id="daySelect"><option value="1">Giorno 1</option><option value="2">Giorno 2</option><option value="3">Giorno 3</option><option value="4">Giorno 4</option></select></label>
-<button id="editDateButton" class="secondary">✏️ Modifica dati salvati</button></div>
+<button type="button" id="editDateButton" class="secondary">✏️ Modifica dati salvati</button></div>
 <h2 id="dayTitle">Giorno 1</h2><div class="table-wrap"><table>
 <thead><tr><th>Esercizio</th><th>Serie × ripetizioni</th><th>Recupero</th><th>Carico</th><th>Video</th></tr></thead>
 <tbody id="exerciseRows"></tbody></table></div></div>
@@ -86,7 +85,7 @@ th,td{padding:12px 8px;text-align:left;border-bottom:1px solid #eee}th{font-size
 <div id="editModal" class="modal"><div class="modal-card">
 <h2>✏️ Modifica dati</h2><label>Data<br><input id="editDate" type="date"></label>
 <div id="editRows" style="display:grid;grid-template-columns:1fr 100px;gap:8px;margin-top:15px"></div>
-<div class="actions" style="justify-content:flex-end;margin-top:18px"><button id="cancelEditor" class="secondary">Annulla</button><button id="saveEditor">Salva modifiche</button></div>
+<div class="actions" style="justify-content:flex-end;margin-top:18px"><button type="button" id="cancelEditor" class="secondary">Annulla</button><button type="button" id="saveEditor">Salva modifiche</button></div>
 </div></div>
 
 <script>
@@ -129,8 +128,44 @@ const WORKOUTS=[
 ];
 const SUPABASE_URL="https://asuehwoueszxyvhmycip.supabase.co";
 const SUPABASE_KEY="sb_publishable_vJ4j_kGvgLoEF-qkDOnzyQ_JbVZ2iTN";
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let supabase=null;
 let history=[], currentDay=1, isSignup=false, profile=null, clients=[];
+
+async function loadSupabase(){
+  if(window.supabase) return window.supabase;
+  const urls=[
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+    "https://unpkg.com/@supabase/supabase-js@2"
+  ];
+  for(const url of urls){
+    try{
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement("script");
+        s.src=url;
+        s.onload=resolve;
+        s.onerror=reject;
+        document.head.appendChild(s);
+      });
+      if(window.supabase) return window.supabase;
+    }catch(e){}
+  }
+  throw new Error("Non riesco a caricare il collegamento al database. Controlla la connessione internet.");
+}
+
+async function initSupabase(){
+  try{
+    const lib=await loadSupabase();
+    supabase=lib.createClient(SUPABASE_URL,SUPABASE_KEY);
+    $("authSubmit").disabled=false;
+    $("showLogin").disabled=false;
+    $("showSignup").disabled=false;
+    const {data:{session}}=await supabase.auth.getSession();
+    if(session) await boot();
+  }catch(e){
+    $("authSubmit").disabled=false;
+    msg("authMsg","Errore di collegamento: "+e.message,true);
+  }
+}
 
 const $=id=>document.getElementById(id);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -213,12 +248,21 @@ async function saveEdited(){
   }catch(e){alert("Errore: "+e.message);}
 }
 async function signup(){
-  const {data,error}=await supabase.auth.signUp({email:$("email").value,password:$("password").value});
+  if(!supabase){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
+  const email=$("email").value.trim(), password=$("password").value;
+  if(!email || password.length<6){msg("authMsg","Inserisci una email valida e una password di almeno 6 caratteri.",true);return;}
+  const {data,error}=await supabase.auth.signUp({email,password});
   if(error){msg("authMsg",error.message,true);return;}
-  if(data.user){await supabase.from("profiles").insert({id:data.user.id,role:"client"});msg("authMsg","Registrazione completata. Controlla la tua email se viene richiesta la conferma.");}
+  if(data.user){
+    if(data.session) await boot();
+    else msg("authMsg","Registrazione completata. Controlla la tua email per confermare l'account, poi accedi.");
+  }
 }
 async function login(){
-  const {error}=await supabase.auth.signInWithPassword({email:$("email").value,password:$("password").value});
+  if(!supabase){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
+  const email=$("email").value.trim(), password=$("password").value;
+  if(!email || !password){msg("authMsg","Inserisci email e password.",true);return;}
+  const {error}=await supabase.auth.signInWithPassword({email,password});
   if(error){msg("authMsg",error.message,true);return;}await boot();
 }
 async function boot(){
@@ -241,9 +285,25 @@ async function loadTrainerProgress(id){
   const c=clients.find(x=>x.id===id);const {data,error}=await supabase.from("workout_records").select("*").eq("user_id",id).order("date");if(error){$("trainerProgress").textContent=error.message;return;}
   $("trainerProgress").innerHTML=`<h2>Progressi — ${c?.email||""}</h2>`+(data||[]).map(r=>`<div class="history-row"><b>${fmt(r.date)}</b><span>Giorno ${r.day}</span><span>${Object.values(r.loads||{}).join(" kg · ")} kg</span></div>`).join("")||'<div class="empty">Nessun dato.</div>';
 }
-$("showLogin").onclick=()=>{isSignup=false;$("authSubmit").textContent="Accedi";$("showLogin").classList.add("active");$("showSignup").classList.remove("active");};
-$("showSignup").onclick=()=>{isSignup=true;$("authSubmit").textContent="Registrati";$("showSignup").classList.add("active");$("showLogin").classList.remove("active");};
-$("authSubmit").onclick=()=>isSignup?signup():login();
+$("showLogin").addEventListener("click",()=>{
+  isSignup=false;
+  $("authSubmit").textContent="Accedi";
+  $("showLogin").classList.add("active");
+  $("showLogin").classList.remove("secondary");
+  $("showSignup").classList.remove("active");
+  $("showSignup").classList.add("secondary");
+  msg("authMsg","");
+});
+$("showSignup").addEventListener("click",()=>{
+  isSignup=true;
+  $("authSubmit").textContent="Registrati";
+  $("showSignup").classList.add("active");
+  $("showSignup").classList.remove("secondary");
+  $("showLogin").classList.remove("active");
+  $("showLogin").classList.add("secondary");
+  msg("authMsg","");
+});
+$("authSubmit").addEventListener("click",()=>isSignup?signup():login());
 $("daySelect").onchange=e=>{currentDay=Number(e.target.value);renderWorkout();};
 $("workoutTab").onclick=()=>{$("workoutView").classList.remove("hidden");$("progressView").classList.add("hidden");$("accountView").classList.add("hidden");$("workoutTab").className="active";$("progressTab").className="secondary";$("accountTab").className="secondary";};
 $("progressTab").onclick=()=>{$("workoutView").classList.add("hidden");$("progressView").classList.remove("hidden");$("accountView").classList.add("hidden");$("progressTab").className="active";$("workoutTab").className="secondary";$("accountTab").className="secondary";renderProgress();};
@@ -258,6 +318,6 @@ $("linkTrainer").onclick=async()=>{const {data,error}=await supabase.rpc("link_t
 $("connectClient").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("trainerClientCode").value.trim().toUpperCase()});msg("trainerMsg",error?error.message:"Cliente collegato.");if(!error)await loadClients();};
 $("clientSelect").onchange=e=>loadTrainerProgress(e.target.value);
 $("logout").onclick=async()=>{await supabase.auth.signOut();location.reload();};$("trainerLogout").onclick=async()=>{await supabase.auth.signOut();location.reload();};
-supabase.auth.getSession().then(r=>{if(r.data.session)boot();});
+initSupabase();
 </script>
 </body></html>

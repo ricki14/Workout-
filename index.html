@@ -1,117 +1,96 @@
 <!doctype html>
 <html lang="it">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Riccardo Workout</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f6f7f9}
-*{box-sizing:border-box}
-body{margin:0;padding:20px}
-.app{max-width:1000px;margin:auto}
-h1{margin:0 0 6px;font-size:28px} .sub{color:#666;margin-bottom:20px}
-.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-button,select,input{font:inherit}
-button{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;background:#111;color:white}
-button.secondary{background:#fff;color:#111;border:1px solid #d5d7dc}
-button.active-tab{background:#111;color:#fff;border:0}
-button.small{padding:8px 10px;font-size:14px}
-.panel{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 12px #0000000d;margin-bottom:16px}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-select,input{border:1px solid #d5d7dc;border-radius:9px;padding:10px;background:white;min-width:0}
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:700px}
-th,td{padding:12px 8px;text-align:left;border-bottom:1px solid #eee}
-th{font-size:13px;color:#666}
-.load{width:95px}
-.video{display:inline-block;padding:8px 10px;border-radius:9px;background:#eee;color:#111;text-decoration:none}
-.hidden{display:none!important}
+*{box-sizing:border-box}body{margin:0;padding:20px}.app{max-width:1000px;margin:auto}
+h1{margin:0 0 6px;font-size:28px}.sub{color:#666;margin-bottom:20px}
+.tabs,.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,select,input{font:inherit}
+button{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;background:#111;color:#fff}
+button.secondary{background:#fff;color:#111;border:1px solid #d5d7dc}button.active{background:#111;color:#fff;border:0}
+.panel{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 12px #0000000d;margin:16px 0}
+input,select{border:1px solid #d5d7dc;border-radius:9px;padding:10px;background:#fff}
+.hidden{display:none!important}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:700px}
+th,td{padding:12px 8px;text-align:left;border-bottom:1px solid #eee}th{font-size:13px;color:#666}
+.load{width:95px}.video{display:inline-block;padding:8px 10px;border-radius:9px;background:#eee;color:#111;text-decoration:none}
 .history-row,.progress-row{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;padding:10px 0}
-.progress-row span:first-child{flex:1}
-.chart-wrap{width:100%;overflow-x:auto}
-.chart{width:100%;min-width:650px;height:auto;display:block}
-.grid{stroke:#d8dbe0;stroke-width:1}
-.axis{fill:#666;font-size:11px}
-.line{fill:none;stroke:#111;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
-.dot{fill:#111}
-.empty{color:#777;padding:15px 0}
+.chart{width:100%;min-width:650px;height:auto}.chart-wrap{overflow-x:auto}.grid{stroke:#d8dbe0}.axis{fill:#666;font-size:11px}
+.line{fill:none;stroke:#111;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}.dot{fill:#111}.empty{color:#777;padding:15px 0}
+.auth{max-width:480px;margin:40px auto}.status{padding:10px 12px;border-radius:10px;background:#eef6ff;color:#245; margin-top:10px}
+.error{background:#fff0f0;color:#900}.code{font-weight:700;letter-spacing:1px;font-size:18px}
 .modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;padding:16px;align-items:center;justify-content:center}
-.modal.open{display:flex}
-.modal-card{background:white;border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:20px;position:relative}
-.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.edit-grid{display:grid;grid-template-columns:1fr 110px;gap:8px 12px;align-items:center}
-.edit-grid label{font-size:14px}
-.edit-grid input{width:110px}
-.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
-.close{background:#eee;color:#111;padding:7px 11px}
-@media(max-width:600px){body{padding:12px}h1{font-size:24px}.panel{padding:12px}.edit-grid{grid-template-columns:1fr 90px}.edit-grid input{width:90px}}
+.modal.open{display:flex}.modal-card{background:#fff;border-radius:16px;max-width:760px;width:100%;padding:20px;max-height:90vh;overflow:auto}
+@media(max-width:600px){body{padding:12px}h1{font-size:24px}.panel{padding:12px}}
 </style>
 </head>
 <body>
-<div class="app">
-  <h1>🏋️ Riccardo Workout</h1>
-  <div class="sub">Scheda personalizzata · dati salvati su questo dispositivo</div>
-
-  <div class="tabs">
-    <button id="workoutTab" class="active-tab">🏋️ Allenamento</button>
-    <button id="progressTab" class="secondary">📈 Progressi</button>
-  </div>
-
-  <section id="workoutView">
-    <div class="panel">
-      <div class="toolbar">
-        <label for="daySelect"><b>Giorno</b></label>
-        <select id="daySelect">
-          <option value="1">Giorno 1</option><option value="2">Giorno 2</option>
-          <option value="3">Giorno 3</option><option value="4">Giorno 4</option>
-        </select>
-        <button id="editDateButton" class="secondary" type="button">✏️ Modifica dati salvati</button>
-      </div>
-      <h2 id="dayTitle">Giorno 1</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Esercizio</th><th>Serie × ripetizioni</th><th>Recupero</th><th>Carico</th><th>Video</th></tr></thead>
-          <tbody id="exerciseRows"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Storico</h2>
-      <div id="historyList"></div>
-    </div>
-  </section>
-
-  <section id="progressView" class="hidden">
-    <div class="panel">
-      <div class="toolbar">
-        <label for="progressExercise"><b>Esercizio</b></label>
-        <select id="progressExercise"></select>
-      </div>
-      <div class="chart-wrap" id="chartWrap"></div>
-      <div id="progressTable"></div>
-    </div>
-  </section>
+<div id="authView" class="auth panel">
+<h1>🏋️ Riccardo Workout</h1>
+<p>Accedi per sincronizzare i progressi online e poterli vedere anche dal PC del PT.</p>
+<div class="toolbar">
+<button id="showLogin" class="active">Accedi</button><button id="showSignup" class="secondary">Registrati</button>
+</div>
+<div id="authForm">
+<label>Email<br><input id="email" type="email" style="width:100%;margin:6px 0 10px"></label>
+<label>Password<br><input id="password" type="password" style="width:100%;margin:6px 0 10px"></label>
+<button id="authSubmit">Accedi</button>
+<div id="authMsg"></div>
+</div>
 </div>
 
-<div id="editModal" class="modal" aria-hidden="true">
-  <div class="modal-card">
-    <div class="modal-head">
-      <h2 style="margin:0">✏️ Modifica dati</h2>
-      <button id="closeEditor" class="close" type="button">✕</button>
-    </div>
-    <label><b>Data</b><br><input id="editDate" type="date" style="margin-top:6px"></label>
-    <p style="color:#666;font-size:14px">Scegli una data esistente oppure una nuova data. Puoi inserire o correggere il carico di qualsiasi esercizio.</p>
-    <div id="editRows" class="edit-grid"></div>
-    <div class="actions">
-      <button id="cancelEditor" class="secondary" type="button">Annulla</button>
-      <button id="saveEditor" type="button">Salva modifiche</button>
-    </div>
-  </div>
+<div id="appView" class="app hidden">
+<h1>🏋️ Riccardo Workout</h1><div class="sub">Progressi sincronizzati online</div>
+<div class="tabs">
+<button id="workoutTab" class="active">🏋️ Allenamento</button>
+<button id="progressTab" class="secondary">📈 Progressi</button>
+<button id="accountTab" class="secondary">👤 Account</button>
 </div>
+<section id="workoutView">
+<div class="panel"><div class="toolbar">
+<label><b>Giorno</b> <select id="daySelect"><option value="1">Giorno 1</option><option value="2">Giorno 2</option><option value="3">Giorno 3</option><option value="4">Giorno 4</option></select></label>
+<button id="editDateButton" class="secondary">✏️ Modifica dati salvati</button></div>
+<h2 id="dayTitle">Giorno 1</h2><div class="table-wrap"><table>
+<thead><tr><th>Esercizio</th><th>Serie × ripetizioni</th><th>Recupero</th><th>Carico</th><th>Video</th></tr></thead>
+<tbody id="exerciseRows"></tbody></table></div></div>
+<div class="panel"><h2>Storico</h2><div id="historyList"></div></div>
+</section>
+
+<section id="progressView" class="hidden"><div class="panel">
+<div class="toolbar"><label><b>Esercizio</b> <select id="progressExercise"></select></label></div>
+<div id="chartWrap" class="chart-wrap"></div><div id="progressTable"></div>
+</div></section>
+
+<section id="accountView" class="hidden"><div class="panel">
+<h2>Account</h2><p id="accountEmail"></p>
+<div class="status">Codice PT: <span id="clientCode" class="code">—</span><br><small>Dai questo codice al tuo PT per collegare il tuo profilo.</small></div>
+<hr style="border:0;border-top:1px solid #eee;margin:18px 0">
+<h3>Collega il PT</h3><p>Il PT può usare il suo account e inserire il tuo codice.</p>
+<label>Codice cliente del PT <input id="linkCode" placeholder="es. ABC12345"></label>
+<button id="linkTrainer" class="secondary">Collega PT</button><div id="linkMsg"></div>
+<hr style="border:0;border-top:1px solid #eee;margin:18px 0">
+<button id="logout">Esci</button>
+</div></section>
+</div>
+
+<div id="trainerView" class="app hidden">
+<h1>🏋️ Area PT</h1><div class="sub">Visualizzazione dei progressi dei clienti collegati</div>
+<div class="panel"><h2>Collega cliente</h2><input id="trainerClientCode" placeholder="Codice cliente"><button id="connectClient">Collega</button><div id="trainerMsg"></div></div>
+<div class="panel"><label><b>Cliente</b> <select id="clientSelect"></select></label></div>
+<div id="trainerProgress" class="panel"></div>
+<button id="trainerLogout">Esci</button>
+</div>
+
+<div id="editModal" class="modal"><div class="modal-card">
+<h2>✏️ Modifica dati</h2><label>Data<br><input id="editDate" type="date"></label>
+<div id="editRows" style="display:grid;grid-template-columns:1fr 100px;gap:8px;margin-top:15px"></div>
+<div class="actions" style="justify-content:flex-end;margin-top:18px"><button id="cancelEditor" class="secondary">Annulla</button><button id="saveEditor">Salva modifiche</button></div>
+</div></div>
 
 <script>
-const WORKOUTS = [
+const WORKOUTS=[
   {day:1, exercises:[
     ["Panca inclinata 30° bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmw1Ex/"],
     ["Military press bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmve6p/"],
@@ -148,188 +127,137 @@ const WORKOUTS = [
     ["Crunch","3x20","1’","https://vm.tiktok.com/ZGdQmGRHk/"]
   ]}
 ];
-const KEY="riccardo_workout_history_v4";
-let history=[];
-try { history=JSON.parse(localStorage.getItem(KEY)||"[]"); if(!Array.isArray(history)) history=[]; } catch(e) { history=[]; }
-let currentDay=1;
+const SUPABASE_URL="https://asuehwoueszxyvhmycip.supabase.co";
+const SUPABASE_KEY="sb_publishable_vJ4j_kGvgLoEF-qkDOnzyQ_JbVZ2iTN";
+const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let history=[], currentDay=1, isSignup=false, profile=null, clients=[];
 
-const $ = id => document.getElementById(id);
-const today = () => new Date().toISOString().slice(0,10);
-const fmt = d => {
-  const [y,m,day]=d.split("-").map(Number);
-  return new Date(y,m-1,day).toLocaleDateString("it-IT");
-};
-function save(){ localStorage.setItem(KEY,JSON.stringify(history)); }
-function allExercises(){ return [...new Set(WORKOUTS.flatMap(w=>w.exercises.map(e=>e[0])))]; }
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toISOString().slice(0,10);
+const fmt=d=>{const [y,m,day]=d.split("-").map(Number);return new Date(y,m-1,day).toLocaleDateString("it-IT");};
+function msg(id,text,error=false){$(id).innerHTML=text?`<div class="status ${error?"error":""}">${text}</div>`:"";}
 
+async function getProfile(){
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)return null;
+  const {data,error}=await supabase.from("profiles").select("*").eq("id",user.id).single();
+  if(error)throw error; return data;
+}
+async function loadHistory(){
+  const {data,error}=await supabase.from("workout_records").select("*").order("date",{ascending:true});
+  if(error)throw error;
+  history=(data||[]).map(r=>({date:r.date,day:r.day,loads:r.loads||{},id:r.id,user_id:r.user_id}));
+}
+async function upsertRecord(date,day,loads){
+  const {data,error}=await supabase.from("workout_records").upsert({user_id:profile.id,date,day,loads},{onConflict:"user_id,date,day"}).select().single();
+  if(error)throw error;
+  return data;
+}
+async function saveCurrentLoad(input){
+  const i=Number(input.dataset.index); let r=history.find(x=>x.date===today()&&x.day===currentDay);
+  const loads={...(r?.loads||{})};
+  if(input.value==="")delete loads[i]; else loads[i]=Number(input.value);
+  try{
+    if(Object.keys(loads).length){
+      const saved=await upsertRecord(today(),currentDay,loads);
+      r={...saved,loads:saved.loads||{}}; const idx=history.findIndex(x=>x.date===today()&&x.day===currentDay);
+      if(idx>=0)history[idx]=r;else history.push(r);
+    }else{
+      await supabase.from("workout_records").delete().eq("user_id",profile.id).eq("date",today()).eq("day",currentDay);
+      history=history.filter(x=>!(x.date===today()&&x.day===currentDay));
+    }
+    renderHistory();renderProgress();
+  }catch(e){alert("Errore nel salvataggio: "+e.message);}
+}
 function renderWorkout(){
-  const w=WORKOUTS.find(x=>x.day===currentDay);
+  const w=WORKOUTS.find(x=>x.day===currentDay),r=history.find(x=>x.date===today()&&x.day===currentDay);
   $("dayTitle").textContent="Giorno "+currentDay;
-  const rec=history.find(r=>r.date===today() && r.day===currentDay);
-  $("exerciseRows").innerHTML=w.exercises.map((e,i)=>{
-    const val=rec && rec.loads && rec.loads[i] != null ? rec.loads[i] : "";
-    return `<tr>
-      <td>${e[0]}</td><td>${e[1]}</td><td>${e[2]}</td>
-      <td><input class="load" type="number" min="0" step="0.5" data-index="${i}" value="${val}" placeholder="kg"></td>
-      <td><a class="video" href="${e[3]}" target="_blank" rel="noopener">Video</a></td>
-    </tr>`;
-  }).join("");
+  $("exerciseRows").innerHTML=w.exercises.map((e,i)=>`<tr><td>${e[0]}</td><td>${e[1]}</td><td>${e[2]}</td><td><input class="load" type="number" min="0" step="0.5" data-index="${i}" value="${r?.loads?.[i]??""}" placeholder="kg"></td><td><a class="video" href="${e[3]}" target="_blank">Video</a></td></tr>`).join("");
 }
-
-function saveCurrentLoad(input){
-  const i=Number(input.dataset.index);
-  let r=history.find(x=>x.date===today() && x.day===currentDay);
-  if(!r){r={date:today(),day:currentDay,loads:{}};history.push(r);}
-  if(input.value==="") delete r.loads[i];
-  else {
-    const n=Number(input.value);
-    if(Number.isFinite(n) && n>=0) r.loads[i]=n;
-  }
-  history=history.filter(x=>x.loads && Object.keys(x.loads).length);
-  save(); renderHistory(); renderProgress();
-}
-
 function renderHistory(){
   const dates=[...new Set(history.map(r=>r.date))].sort().reverse();
-  $("historyList").innerHTML=dates.length ? dates.map(d=>{
-    const days=history.filter(r=>r.date===d).map(r=>"Giorno "+r.day).join(", ");
-    return `<div class="history-row"><b>${fmt(d)}</b><span>${days}</span><button class="small edit-history" type="button" data-date="${d}">Modifica</button></div>`;
-  }).join("") : '<div class="empty">Nessun allenamento salvato.</div>';
+  $("historyList").innerHTML=dates.length?dates.map(d=>`<div class="history-row"><b>${fmt(d)}</b><span>${history.filter(r=>r.date===d).map(r=>"Giorno "+r.day).join(", ")}</span><button class="small edit-history" data-date="${d}">Modifica</button></div>`).join(""):'<div class="empty">Nessun allenamento salvato.</div>';
 }
-
+function fillProgressSelect(){
+  const old=$("progressExercise").value;
+  $("progressExercise").innerHTML=WORKOUTS.slice().sort((a,b)=>a.day-b.day).map(w=>`<optgroup label="Giorno ${w.day}">${w.exercises.map(e=>`<option value="${w.day}|${e[0]}">${e[0]}</option>`).join("")}</optgroup>`).join("");
+  if(old&&[...$("progressExercise").options].some(o=>o.value===old))$("progressExercise").value=old;
+}
 function renderProgress(){
-  const sel=$("progressExercise");
-  const old=sel.value;
-  sel.innerHTML = WORKOUTS.slice().sort((a,b)=>a.day-b.day).map(w =>
-    `<optgroup label="Giorno ${w.day}">` +
-    w.exercises.map(e => `<option value="${e[0]}" data-day="${w.day}">${e[0]}</option>`).join("") +
-    `</optgroup>`
-  ).join("");
-  if(old) {
-    const matching = [...sel.options].find(o => o.value === old);
-    if(matching) sel.value = old;
-  }
-  const ex=sel.value;
-  const selectedOption=sel.options[sel.selectedIndex];
-  const selectedDay=selectedOption ? Number(selectedOption.dataset.day) : null;
-  const points=[];
-  history.forEach(r=>{
-    const w=WORKOUTS.find(x=>x.day===r.day);
-    if(!w || !r.loads) return;
-    w.exercises.forEach((e,i)=>{
-      if(e[0]===ex && r.day===selectedDay && r.loads[i] != null) points.push({date:r.date,value:Number(r.loads[i])});
-    });
+  fillProgressSelect();const [dayStr,ex]=($("progressExercise").value||"|").split("|"),day=Number(dayStr);
+  const points=[];history.filter(r=>r.day===day).forEach(r=>{
+    const w=WORKOUTS.find(x=>x.day===day);w.exercises.forEach((e,i)=>{if(e[0]===ex&&r.loads?.[i]!=null)points.push({date:r.date,value:Number(r.loads[i])});});
   });
-  points.sort((a,b)=>a.date.localeCompare(b.date));
-  drawChart(points,ex);
-  $("progressTable").innerHTML=points.slice().reverse().map(p=>
-    `<div class="progress-row"><span>${fmt(p.date)}</span><b>${p.value} kg</b><button class="small edit-history" type="button" data-date="${p.date}">Modifica</button></div>`
-  ).join("") || '<div class="empty">Inserisci dei carichi per vedere i progressi.</div>';
+  points.sort((a,b)=>a.date.localeCompare(b.date));drawChart(points);$("progressTable").innerHTML=points.slice().reverse().map(p=>`<div class="progress-row"><span>${fmt(p.date)}</span><b>${p.value} kg</b><button class="edit-history" data-date="${p.date}">Modifica</button></div>`).join("")||'<div class="empty">Inserisci dei carichi per vedere i progressi.</div>';
 }
-
-function drawChart(points,ex){
-  const W=760,H=320,L=58,R=20,T=25,B=55;
-  if(!points.length){ $("chartWrap").innerHTML='<div class="empty">Inserisci dei carichi per vedere il grafico.</div>'; return; }
-  const maxData=Math.max(...points.map(p=>p.value),1);
-  const max=Math.ceil(maxData/5)*5 || 5;
-  const plotW=W-L-R, plotH=H-T-B;
-  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Progressi ${ex}">`;
-  for(let i=0;i<=5;i++){
-    const y=T+plotH*(1-i/5), v=max*i/5;
-    s+=`<line class="grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"></line>`;
-    s+=`<text class="axis" x="${L-8}" y="${y+4}" text-anchor="end">${Number(v.toFixed(1))} kg</text>`;
-  }
-  const pts=points.map((p,i)=>{
-    const x=points.length===1 ? L+plotW/2 : L+i*plotW/(points.length-1);
-    const y=T+plotH*(1-p.value/max);
-    return {x,y,p};
-  });
-  s+=`<polyline class="line" points="${pts.map(a=>a.x+','+a.y).join(' ')}"></polyline>`;
-  pts.forEach((a,i)=>{
-    s+=`<circle class="dot" cx="${a.x}" cy="${a.y}" r="5"></circle>`;
-    if(points.length<=8 || i===0 || i===points.length-1)
-      s+=`<text class="axis" x="${a.x}" y="${H-18}" text-anchor="middle">${fmt(a.p.date)}</text>`;
-  });
-  s+=`</svg>`;
-  $("chartWrap").innerHTML=s;
+function drawChart(points){
+  if(!points.length){$("chartWrap").innerHTML='<div class="empty">Inserisci dei carichi per vedere il grafico.</div>';return;}
+  const W=760,H=320,L=58,R=20,T=25,B=55,max=Math.ceil(Math.max(...points.map(p=>p.value),1)/5)*5||5,pw=W-L-R,ph=H-T-B;
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
+  for(let i=0;i<=5;i++){const y=T+ph*(1-i/5),v=max*i/5;s+=`<line class="grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text class="axis" x="${L-8}" y="${y+4}" text-anchor="end">${v} kg</text>`;}
+  const pts=points.map((p,i)=>{const x=points.length===1?L+pw/2:L+i*pw/(points.length-1),y=T+ph*(1-p.value/max);return {x,y,p};});
+  s+=`<polyline class="line" points="${pts.map(a=>a.x+','+a.y).join(' ')}"/>`;pts.forEach(a=>s+=`<circle class="dot" cx="${a.x}" cy="${a.y}" r="5"/><text class="axis" x="${a.x}" y="${H-18}" text-anchor="middle">${fmt(a.p.date)}</text>`);s+='</svg>';$("chartWrap").innerHTML=s;
 }
-
-function openEditor(date){
-  const d=date || today();
-  $("editDate").value=d;
-  fillEditor(d);
-  $("editModal").classList.add("open");
-  $("editModal").setAttribute("aria-hidden","false");
-}
-function fillEditor(date){
-  const rows=history.filter(r=>r.date===date);
-  $("editRows").innerHTML=WORKOUTS.flatMap(w=>w.exercises.map((e,i)=>{
-    const r=rows.find(x=>x.day===w.day);
-    const v=r && r.loads && r.loads[i] != null ? r.loads[i] : "";
-    return `<label>G${w.day} — ${e[0]}</label><input class="edit-load" type="number" min="0" step="0.5" data-day="${w.day}" data-index="${i}" value="${v}" placeholder="kg">`;
-  })).join("");
-}
-function closeEditor(){
-  $("editModal").classList.remove("open");
-  $("editModal").setAttribute("aria-hidden","true");
-}
-function saveEdited(){
-  const date=$("editDate").value;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-  document.querySelectorAll(".edit-load").forEach(inp=>{
-    const day=Number(inp.dataset.day), i=Number(inp.dataset.index);
-    let r=history.find(x=>x.date===date && x.day===day);
-    if(inp.value===""){
-      if(r && r.loads) delete r.loads[i];
-    } else {
-      const n=Number(inp.value);
-      if(Number.isFinite(n) && n>=0){
-        if(!r){r={date,day,loads:{}};history.push(r);}
-        r.loads[i]=n;
-      }
+function openEditor(date){$("editDate").value=date||today();fillEditor();$("editModal").classList.add("open");}
+function fillEditor(){const date=$("editDate").value,rows=history.filter(r=>r.date===date);$("editRows").innerHTML=WORKOUTS.flatMap(w=>w.exercises.map((e,i)=>{const r=rows.find(x=>x.day===w.day);return `<label>G${w.day} — ${e[0]}</label><input class="edit-load" type="number" min="0" step="0.5" data-day="${w.day}" data-index="${i}" value="${r?.loads?.[i]??""}" placeholder="kg">`;})).join("");}
+async function saveEdited(){
+  const date=$("editDate").value;if(!date)return;
+  try{
+    for(const inp of document.querySelectorAll(".edit-load")){
+      const day=Number(inp.dataset.day),i=Number(inp.dataset.index);let r=history.find(x=>x.date===date&&x.day===day);const loads={...(r?.loads||{})};
+      if(inp.value==="")delete loads[i];else loads[i]=Number(inp.value);
+      if(Object.keys(loads).length){const saved=await upsertRecord(date,day,loads);const idx=history.findIndex(x=>x.date===date&&x.day===day);if(idx>=0)history[idx]=saved;else history.push(saved);}
+      else if(r){await supabase.from("workout_records").delete().eq("user_id",profile.id).eq("date",date).eq("day",day);history=history.filter(x=>!(x.date===date&&x.day===day));}
     }
-  });
-  history=history.filter(r=>r.loads && Object.keys(r.loads).length);
-  save(); closeEditor(); renderWorkout(); renderHistory(); renderProgress();
+    $("editModal").classList.remove("open");renderWorkout();renderHistory();renderProgress();
+  }catch(e){alert("Errore: "+e.message);}
 }
-
-$("daySelect").addEventListener("change",e=>{currentDay=Number(e.target.value);renderWorkout();});
-$("workoutTab").addEventListener("click",()=>{
-  $("workoutView").classList.remove("hidden");
-  $("progressView").classList.add("hidden");
-  $("workoutTab").classList.add("active-tab");
-  $("workoutTab").classList.remove("secondary");
-  $("progressTab").classList.remove("active-tab");
-  $("progressTab").classList.add("secondary");
-});
-$("progressTab").addEventListener("click",()=>{
-  $("workoutView").classList.add("hidden");
-  $("progressView").classList.remove("hidden");
-  $("progressTab").classList.add("active-tab");
-  $("progressTab").classList.remove("secondary");
-  $("workoutTab").classList.remove("active-tab");
-  $("workoutTab").classList.add("secondary");
-  renderProgress();
-});
-$("progressExercise").addEventListener("change",renderProgress);
-$("editDateButton").addEventListener("click",()=>openEditor(today()));
-$("closeEditor").addEventListener("click",closeEditor);
-$("cancelEditor").addEventListener("click",closeEditor);
-$("saveEditor").addEventListener("click",saveEdited);
-$("editDate").addEventListener("change",e=>fillEditor(e.target.value));
-$("historyList").addEventListener("click",e=>{
-  const b=e.target.closest(".edit-history");
-  if(b) openEditor(b.dataset.date);
-});
-$("progressTable").addEventListener("click",e=>{
-  const b=e.target.closest(".edit-history");
-  if(b) openEditor(b.dataset.date);
-});
-$("exerciseRows").addEventListener("input",e=>{
-  if(e.target.classList.contains("load")) saveCurrentLoad(e.target);
-});
-$("editModal").addEventListener("click",e=>{if(e.target===$("editModal")) closeEditor();});
-
-renderWorkout(); renderHistory(); renderProgress();
+async function signup(){
+  const {data,error}=await supabase.auth.signUp({email:$("email").value,password:$("password").value});
+  if(error){msg("authMsg",error.message,true);return;}
+  if(data.user){await supabase.from("profiles").insert({id:data.user.id,role:"client"});msg("authMsg","Registrazione completata. Controlla la tua email se viene richiesta la conferma.");}
+}
+async function login(){
+  const {error}=await supabase.auth.signInWithPassword({email:$("email").value,password:$("password").value});
+  if(error){msg("authMsg",error.message,true);return;}await boot();
+}
+async function boot(){
+  try{
+    profile=await getProfile();if(!profile)throw new Error("Profilo non trovato.");
+    $("authView").classList.add("hidden");
+    if(profile.role==="trainer"){await bootTrainer();return;}
+    $("appView").classList.remove("hidden");$("accountEmail").textContent=profile.email||"Account";$("clientCode").textContent=profile.client_code||"—";
+    await loadHistory();renderWorkout();renderHistory();renderProgress();
+  }catch(e){msg("authMsg",e.message,true);}
+}
+async function bootTrainer(){
+  $("trainerView").classList.remove("hidden");await loadClients();
+}
+async function loadClients(){
+  const {data,error}=await supabase.from("trainer_links").select("client_id,profiles!trainer_links_client_id_fkey(id,email,client_code)").eq("trainer_id",profile.id);
+  if(error){msg("trainerMsg",error.message,true);return;}clients=(data||[]).map(x=>x.profiles);$("clientSelect").innerHTML=clients.map(c=>`<option value="${c.id}">${c.email}</option>`).join("");if(clients.length)await loadTrainerProgress(clients[0].id);
+}
+async function loadTrainerProgress(id){
+  const c=clients.find(x=>x.id===id);const {data,error}=await supabase.from("workout_records").select("*").eq("user_id",id).order("date");if(error){$("trainerProgress").textContent=error.message;return;}
+  $("trainerProgress").innerHTML=`<h2>Progressi — ${c?.email||""}</h2>`+(data||[]).map(r=>`<div class="history-row"><b>${fmt(r.date)}</b><span>Giorno ${r.day}</span><span>${Object.values(r.loads||{}).join(" kg · ")} kg</span></div>`).join("")||'<div class="empty">Nessun dato.</div>';
+}
+$("showLogin").onclick=()=>{isSignup=false;$("authSubmit").textContent="Accedi";$("showLogin").classList.add("active");$("showSignup").classList.remove("active");};
+$("showSignup").onclick=()=>{isSignup=true;$("authSubmit").textContent="Registrati";$("showSignup").classList.add("active");$("showLogin").classList.remove("active");};
+$("authSubmit").onclick=()=>isSignup?signup():login();
+$("daySelect").onchange=e=>{currentDay=Number(e.target.value);renderWorkout();};
+$("workoutTab").onclick=()=>{$("workoutView").classList.remove("hidden");$("progressView").classList.add("hidden");$("accountView").classList.add("hidden");$("workoutTab").className="active";$("progressTab").className="secondary";$("accountTab").className="secondary";};
+$("progressTab").onclick=()=>{$("workoutView").classList.add("hidden");$("progressView").classList.remove("hidden");$("accountView").classList.add("hidden");$("progressTab").className="active";$("workoutTab").className="secondary";$("accountTab").className="secondary";renderProgress();};
+$("accountTab").onclick=()=>{$("workoutView").classList.add("hidden");$("progressView").classList.add("hidden");$("accountView").classList.remove("hidden");$("accountTab").className="active";$("workoutTab").className="secondary";$("progressTab").className="secondary";};
+$("progressExercise").onchange=renderProgress;
+$("exerciseRows").oninput=e=>{if(e.target.classList.contains("load"))saveCurrentLoad(e.target);};
+$("editDateButton").onclick=()=>openEditor(today());$("editDate").onchange=fillEditor;
+$("cancelEditor").onclick=()=>$("editModal").classList.remove("open");$("saveEditor").onclick=saveEdited;
+$("historyList").onclick=e=>{const b=e.target.closest(".edit-history");if(b)openEditor(b.dataset.date);};
+$("progressTable").onclick=e=>{const b=e.target.closest(".edit-history");if(b)openEditor(b.dataset.date);};
+$("linkTrainer").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("linkCode").value.trim().toUpperCase()});msg("linkMsg",error?error.message:"PT collegato.");};
+$("connectClient").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("trainerClientCode").value.trim().toUpperCase()});msg("trainerMsg",error?error.message:"Cliente collegato.");if(!error)await loadClients();};
+$("clientSelect").onchange=e=>loadTrainerProgress(e.target.value);
+$("logout").onclick=async()=>{await supabase.auth.signOut();location.reload();};$("trainerLogout").onclick=async()=>{await supabase.auth.signOut();location.reload();};
+supabase.auth.getSession().then(r=>{if(r.data.session)boot();});
 </script>
 </body></html>

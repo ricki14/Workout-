@@ -177,6 +177,27 @@ img,video,iframe,svg{max-width:100%}
 
 .password-strength{margin-top:8px}.strength-track{height:5px;border-radius:99px;background:#e9e9ed;overflow:hidden}.strength-track span{display:block;height:100%;width:0;background:#ff3b30;border-radius:inherit;transition:width .25s ease,background .25s ease}.password-strength small{display:block;margin-top:6px;color:#8a8a93}.password-strength small.good{color:#6f8f7a}.password-strength small.strong{color:#238636}.password-strength small.weak{color:#ff3b30}.password-ok{color:#238636!important}.password-error{color:#ff3b30!important}
 \n<style id="gestures-v24">\n/* Native-feeling touch interactions */\n.sheet,.guided-sheet{touch-action:pan-y;will-change:transform;}\n.gesture-dragging{transition:none!important;}\n.gesture-settling{transition:transform .28s cubic-bezier(.22,.8,.25,1)!important;}\n@media(max-width:760px){\n  .sheet,.guided-sheet{overscroll-behavior:contain;}\n  .nav button{touch-action:manipulation;}\n}\n</style>\n</style>
+
+<style id="level-logo-fix-v26">
+/* LEVEL brand mark — visible on dark app icons */
+.level-app-icon{background:#111 !important;color:#fff !important;}
+.level-app-icon .level-mark{width:27px;height:27px;display:block;color:#fff !important;}
+.level-app-icon .level-mark path{fill:currentColor !important;}
+.login-logo.level-login-logo{background:#111 !important;color:#fff !important;}
+.login-logo.level-login-logo .level-mark{width:64px;height:64px;display:block;color:#fff !important;}
+.login-logo.level-login-logo .level-mark path{fill:currentColor !important;}
+/* Orange is the only secondary accent */
+:root{--accent:#ff5a00;}
+</style>
+
+
+<style id="level-lockup-v26">
+.level-brand-lockup{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+.level-brand-lockup .login-logo{margin-bottom:0;flex:0 0 60px;}
+.level-wordmark{font-size:26px;font-weight:800;letter-spacing:.18em;color:#111;}
+@media(max-width:600px){.level-wordmark{font-size:23px;letter-spacing:.15em}}
+</style>
+
 </head>
 <body>
 <div id="app"></div><div id="nav-root"></div><div id="modal" class="modal-wrap"></div><div id="guided-root"></div><div id="toast" class="toast"></div>
@@ -338,7 +359,7 @@ function progressView(){
 }
 function renderAuth(){
  const login=state.authMode==="login";const app=document.getElementById("app");app.classList.remove("page-enter","page-enter-up","page-exit");void app.offsetWidth;app.classList.add("page-enter-up");document.getElementById("nav-root").innerHTML="";
- app.innerHTML=`<main class="login"><section class="login-box"><div class="login-logo level-login-logo"><svg class="level-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M20 10h11v29.5L48 29v14L20 58V10Z" fill="currentColor"/><path d="M31 39.5h17L31 50.5v-11Z" fill="currentColor" opacity=".82"/></svg></div><div class="eyebrow">LEVEL</div><h1>${login?"Il tuo allenamento.":"Crea il tuo spazio."}</h1><p>${login?"Accedi alla tua scheda, ai tuoi carichi e ai tuoi progressi.":"Un account personale per atleta o PT, con la tua scheda sempre con te."}</p><div class="tabs"><button data-auth="login" class="${login?"active":""}">Accedi</button><button data-auth="signup" class="${!login?"active":""}">Crea account</button></div><form id="auth-form"><div class="field"><label>Email</label><input class="input" type="email" name="email" required autocomplete="email" placeholder="nome@email.com"></div>${!login?`<div class="field"><label>Nome</label><input class="input" name="name" required autocomplete="name" placeholder="Come vuoi essere chiamato?"></div><div class="field"><label>Tipo di account</label><div class="role-picker"><label><input type="radio" name="role" value="atleta" checked><span><b>Atleta</b><small>Gestisco i miei allenamenti</small></span></label><label><input type="radio" name="role" value="pt"><span><b>PT</b><small>Creo schede per i clienti</small></span></label></div></div>`:""}<div class="field"><label>Password</label><input class="input" type="password" name="password" required minlength="8" autocomplete="${login?"current-password":"new-password"}" placeholder="Almeno 8 caratteri"><div class="password-strength" data-password-strength style="display:${login?"none":"block"}"><div class="strength-track"><span></span></div><small data-password-strength-text>Inserisci una password sicura.</small></div></div>${!login?`<div class="field"><label>Conferma password</label><input class="input" type="password" name="passwordConfirm" required minlength="8" autocomplete="new-password" placeholder="Ripeti la password"><div class="field-hint" data-password-match>Le password devono coincidere.</div></div>`:""}<button class="primary full" type="submit">${login?"Accedi":"Crea account"}</button><div id="auth-msg"></div></form></section></main>`;
+ app.innerHTML=`<main class="login"><section class="login-box"><div class="level-brand-lockup"><div class="login-logo level-login-logo"><svg class="level-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M20 10h11v29.5L48 29v14L20 58V10Z" fill="currentColor"/><path d="M31 39.5h17L31 50.5v-11Z" fill="currentColor" opacity=".82"/></svg></div><div class="level-wordmark">LEVEL</div></div><div class="eyebrow">LEVEL</div><h1>${login?"Il tuo allenamento.":"Crea il tuo spazio."}</h1><p>${login?"Accedi alla tua scheda, ai tuoi carichi e ai tuoi progressi.":"Un account personale per atleta o PT, con la tua scheda sempre con te."}</p><div class="tabs"><button data-auth="login" class="${login?"active":""}">Accedi</button><button data-auth="signup" class="${!login?"active":""}">Crea account</button></div><form id="auth-form"><div class="field"><label>Email</label><input class="input" type="email" name="email" required autocomplete="email" placeholder="nome@email.com"></div>${!login?`<div class="field"><label>Nome</label><input class="input" name="name" required autocomplete="name" placeholder="Come vuoi essere chiamato?"></div><div class="field"><label>Tipo di account</label><div class="role-picker"><label><input type="radio" name="role" value="atleta" checked><span><b>Atleta</b><small>Gestisco i miei allenamenti</small></span></label><label><input type="radio" name="role" value="pt"><span><b>PT</b><small>Creo schede per i clienti</small></span></label></div></div>`:""}<div class="field"><label>Password</label><input class="input" type="password" name="password" required minlength="8" autocomplete="${login?"current-password":"new-password"}" placeholder="Almeno 8 caratteri"><div class="password-strength" data-password-strength style="display:${login?"none":"block"}"><div class="strength-track"><span></span></div><small data-password-strength-text>Inserisci una password sicura.</small></div></div>${!login?`<div class="field"><label>Conferma password</label><input class="input" type="password" name="passwordConfirm" required minlength="8" autocomplete="new-password" placeholder="Ripeti la password"><div class="field-hint" data-password-match>Le password devono coincidere.</div></div>`:""}<button class="primary full" type="submit">${login?"Accedi":"Crea account"}</button><div id="auth-msg"></div></form></section></main>`;
 }
 async function loadData(){
  const {data,error}=await sb.from("workout_records").select("*").eq("user_id",state.user.id).order("date",{ascending:false}).order("created_at",{ascending:false});

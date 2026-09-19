@@ -47,6 +47,14 @@ button,input,select{font:inherit}button{border:0;cursor:pointer}a{color:inherit}
 @media(prefers-reduced-motion:reduce){.guided-timer.live,.guided-time.tick,.guided-progress span.pulse,.guided-sheet.guided-content-in{animation:none!important;transition:none!important}}
 @media(max-width:500px){.day-grid{grid-template-columns:1fr}.stat-row{grid-template-columns:1fr 1fr 1fr}.exercise{grid-template-columns:1fr 104px}.load{gap:4px}.load input{padding:11px 8px}.nav{bottom:calc(10px + env(safe-area-inset-bottom));width:min(94%,560px)}.brand strong{font-size:16px}}
 
+/* Mobile viewport alignment */
+html,body,#app,#nav-root,#modal,#guided-root{width:100%;max-width:100%;margin:0;padding-left:0;padding-right:0;}
+body{overflow-x:hidden;}
+.shell{width:100%;margin-left:auto;margin-right:auto;}
+.guided-overlay{width:100%;left:0;right:0;}
+.guided-sheet{margin-left:auto;margin-right:auto;width:100%;max-width:620px;}
+@media(max-width:500px){.shell{padding-left:14px;padding-right:14px}.guided-overlay{padding-left:0;padding-right:0}.guided-sheet{width:100%;max-width:none;box-sizing:border-box}.guided-top,.guided-title,.guided-sub,.guided-progress,.guided-timer,.guided-actions,.guided-load,.guided-next,.guided-finish{max-width:100%;}.guided-sheet>*{max-width:100%;}}
+
 /* ===== Apple-like motion system ===== */
 :root{
   --ease-apple:cubic-bezier(.22,.61,.36,1);

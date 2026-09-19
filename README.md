@@ -1,3 +1,11 @@
-# Riccardo Workout — Guided Mode v4
+# Riccardo Workout v22
 
-Modalità allenamento guidata con timer di recupero a due soglie, avanzamento per serie/esercizio, salvataggio automatico del carico a fine esercizio e UI Apple-inspired.
+Importazione scheda senza API AI:
+1. L'utente apre Importa con AI.
+2. Copia il prompt.
+3. Carica il PDF in ChatGPT o altra AI.
+4. Copia la risposta.
+5. Incolla nell'app.
+6. L'app interpreta il testo e prepara la scheda per la revisione.
+
+Non serve OPENAI_API_KEY e non vengono effettuate chiamate AI dal sito.

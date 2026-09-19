@@ -476,5 +476,164 @@ document.addEventListener("keydown",e=>{if(!state.guided)return;if(e.key==="Esca
 sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=session.user;await loadProfile();await loadData();render()}else if(!state.user){renderAuth()}});
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){state.user=data.session.user;await loadProfile();await loadData();render()}else renderAuth()})();
 </script>
+
+<style id="ai-import-v22">
+.ai-import-modal{position:fixed;inset:0;z-index:320;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(10,12,18,.32);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.ai-import-modal.open{display:flex}
+.ai-import-card{width:min(680px,100%);max-height:min(90dvh,820px);overflow:auto;background:rgba(250,250,252,.96);border:1px solid rgba(255,255,255,.7);border-radius:30px;box-shadow:0 28px 80px rgba(0,0,0,.2);padding:26px}
+.ai-import-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.ai-import-kicker{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+.ai-import-title{font-size:28px;font-weight:800;letter-spacing:-.04em;margin:5px 0}
+.ai-import-sub{color:#6b6f78;line-height:1.45;margin:0}
+.ai-import-close{width:36px;height:36px;border:0;border-radius:50%;background:#ececf0;font-size:20px;cursor:pointer}
+.ai-import-step{margin-top:20px;padding:18px;border-radius:22px;background:#f1f1f4}
+.ai-import-step h4{margin:0 0 7px;font-size:16px}
+.ai-import-step p{margin:0;color:#6b6f78;line-height:1.45}
+.ai-import-prompt{margin-top:12px;width:100%;min-height:180px;resize:vertical;border:1px solid #dddde3;border-radius:16px;padding:13px;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;box-sizing:border-box}
+.ai-import-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ai-import-btn{border:0;border-radius:14px;padding:11px 16px;font-weight:700;cursor:pointer}
+.ai-import-btn.primary{background:#111;color:#fff}
+.ai-import-btn.secondary{background:#e5e5e9;color:#111}
+.ai-import-input{margin-top:12px;width:100%;min-height:190px;resize:vertical;border:1px solid #d7d7de;border-radius:16px;padding:14px;font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;box-sizing:border-box;background:#fff}
+.ai-import-status{margin-top:10px;font-size:13px;color:#666b74}
+.ai-import-help{font-size:12px;color:#777b84;margin-top:8px}
+@media(max-width:600px){.ai-import-modal{padding:0;align-items:flex-end}.ai-import-card{width:100%;max-height:96dvh;border-radius:28px 28px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}.ai-import-title{font-size:24px}}
+</style>
+
+<div id="aiImportModal" class="ai-import-modal" aria-hidden="true">
+  <div class="ai-import-card" role="dialog" aria-modal="true">
+    <div class="ai-import-head">
+      <div>
+        <div class="ai-import-kicker">Importazione intelligente</div>
+        <div class="ai-import-title">Trasforma la tua scheda</div>
+        <p class="ai-import-sub">Fai leggere il PDF a ChatGPT o a un'altra AI, poi incolla qui il risultato. L'app compilerà automaticamente la scheda.</p>
+      </div>
+      <button class="ai-import-close" id="aiImportClose" aria-label="Chiudi">×</button>
+    </div>
+    <div class="ai-import-step">
+      <h4>1. Copia il prompt</h4>
+      <p>Carica il PDF nella tua AI preferita e usa queste istruzioni.</p>
+      <textarea id="aiImportPrompt" class="ai-import-prompt" readonly>Analizza la scheda di allenamento nel PDF allegato.
+
+Estrai ESCLUSIVAMENTE le informazioni presenti nel documento. NON inventare o completare dati mancanti.
+
+Restituisci il risultato in questo formato:
+
+SCHEDA
+Nome: ...
+Data inizio: ...
+Data fine: ...
+
+GIORNO 1
+Nome: ...
+Cosa si allena: ...
+
+ESERCIZIO
+Nome: ...
+Serie: ...
+Ripetizioni: ...
+Recupero: ...
+
+ESERCIZIO
+Nome: ...
+Serie: ...
+Ripetizioni: ...
+Recupero: ...
+
+Ripeti per tutti i giorni.
+
+Se un'informazione non è presente, scrivi: NON SPECIFICATO.
+Mantieni esattamente i nomi degli esercizi presenti nel PDF.
+Non aggiungere video, perché i video verranno inseriti successivamente nell'app.</textarea>
+      <div class="ai-import-actions">
+        <button class="ai-import-btn primary" id="aiCopyPrompt">Copia prompt</button>
+        <button class="ai-import-btn secondary" id="aiOpenChatGPT">Apri ChatGPT</button>
+      </div>
+      <div class="ai-import-help">Puoi usare anche un'altra AI che permette di caricare PDF.</div>
+    </div>
+    <div class="ai-import-step">
+      <h4>2. Incolla il risultato</h4>
+      <p>Copia la risposta completa dell'AI e incollala qui.</p>
+      <textarea id="aiImportText" class="ai-import-input" placeholder="Incolla qui la risposta dell'AI…"></textarea>
+      <div class="ai-import-actions">
+        <button class="ai-import-btn primary" id="aiParseText">Compila la scheda</button>
+      </div>
+      <div id="aiImportStatus" class="ai-import-status"></div>
+    </div>
+  </div>
+</div>
+
+
+<script id="ai-import-v22-js">
+(function(){
+  const modal=document.getElementById('aiImportModal');
+  if(!modal) return;
+  const close=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true')};
+  window.openAIWorkoutImport=()=>{modal.classList.add('open');modal.setAttribute('aria-hidden','false')};
+  document.getElementById('aiImportClose').onclick=close;
+  modal.addEventListener('click',e=>{if(e.target===modal)close()});
+
+  const prompt=document.getElementById('aiImportPrompt');
+  document.getElementById('aiCopyPrompt').onclick=async()=>{
+    try{await navigator.clipboard.writeText(prompt.value);document.getElementById('aiCopyPrompt').textContent='Copiato ✓';setTimeout(()=>document.getElementById('aiCopyPrompt').textContent='Copia prompt',1400)}
+    catch(e){prompt.focus();prompt.select();document.execCommand('copy');}
+  };
+  document.getElementById('aiOpenChatGPT').onclick=()=>window.open('https://chatgpt.com/','_blank','noopener');
+
+  function parse(text){
+    const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    const workout={name:'',startDate:'',endDate:'',days:[]};
+    let day=null, ex=null;
+    for(const line of lines){
+      let m=line.match(/^Nome:\s*(.+)$/i);
+      if(m){
+        if(day && !ex) { day.name=m[1]; continue; }
+        if(ex){ ex.name=m[1]; continue; }
+        if(!workout.name) workout.name=m[1]; else if(day) day.name=m[1];
+        continue;
+      }
+      m=line.match(/^Data inizio:\s*(.+)$/i); if(m){workout.startDate=m[1];continue}
+      m=line.match(/^Data fine:\s*(.+)$/i); if(m){workout.endDate=m[1];continue}
+      m=line.match(/^GIORNO\s*(\d+)\s*$/i);
+      if(m){day={number:+m[1],name:'',focus:'',exercises:[]};workout.days.push(day);ex=null;continue}
+      m=line.match(/^Cosa si allena:\s*(.+)$/i); if(m&&day){day.focus=m[1];continue}
+      if(/^ESERCIZIO$/i.test(line)){ex={name:'',sets:'',reps:'',rest:''};if(day)day.exercises.push(ex);continue}
+      m=line.match(/^Serie:\s*(.+)$/i);if(m&&ex){ex.sets=m[1];continue}
+      m=line.match(/^Ripetizioni:\s*(.+)$/i);if(m&&ex){ex.reps=m[1];continue}
+      m=line.match(/^Recupero:\s*(.+)$/i);if(m&&ex){ex.rest=m[1];continue}
+      // Also accept compact lines like "Panca inclinata — 4 × 8 — recupero 1:30"
+      m=line.match(/^(.+?)\s*[—-]\s*(\d+)\s*[x×]\s*([^\s—-]+)(?:\s*[—-]\s*(?:recupero\s*)?(.+))?$/i);
+      if(m&&day){day.exercises.push({name:m[1].trim(),sets:m[2],reps:m[3],rest:m[4]||''});}
+    }
+    return workout;
+  }
+
+  document.getElementById('aiParseText').onclick=()=>{
+    const text=document.getElementById('aiImportText').value.trim();
+    const status=document.getElementById('aiImportStatus');
+    if(!text){status.textContent='Incolla prima la risposta dell’AI.';return}
+    const data=parse(text);
+    const count=data.days.reduce((n,d)=>n+d.exercises.length,0);
+    if(!data.days.length || !count){status.textContent='Non ho riconosciuto una scheda. Usa il prompt qui sopra e incolla la risposta completa.';return}
+    window.__aiImportedWorkout=data;
+    status.textContent=`Ho trovato ${data.days.length} giorni e ${count} esercizi. La scheda è pronta per essere controllata.`;
+    if(typeof window.openWorkoutEditor==='function') {
+      window.openWorkoutEditor(data);
+      close();
+    } else {
+      window.dispatchEvent(new CustomEvent('ai-workout-ready',{detail:data}));
+    }
+  };
+})();
+</script>
+
+
+<script id="ai-import-v22-wire">
+document.addEventListener('click',function(e){
+  const el=e.target.closest('[data-ai-import],#importPdfBtn,#aiImportBtn,.import-ai,.create-ai-workout');
+  if(el && typeof window.openAIWorkoutImport==='function'){e.preventDefault();window.openAIWorkoutImport();}
+});
+</script>
+
 </body>
 </html>

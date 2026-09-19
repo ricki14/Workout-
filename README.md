@@ -1,3 +1,3 @@
-# Riccardo Workout — Guided Mode v5
+# Riccardo Workout — Guided Mode v4
 
-Timer dinamico e micro-animazioni Apple-style su tutta la modalità guidata.
+Modalità allenamento guidata con timer di recupero a due soglie, avanzamento per serie/esercizio, salvataggio automatico del carico a fine esercizio e UI Apple-inspired.

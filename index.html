@@ -125,6 +125,38 @@ body{overflow-x:hidden}
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
 
+<style>
+/* ===== Responsive layout hardening ===== */
+html,body{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
+*,*::before,*::after{min-width:0}
+#app,.shell,.view,.grid,.card,.day-grid,.day-card,.exercise,.toolbar{max-width:100%;min-width:0}
+.shell{width:100%;margin-inline:auto}
+.grid{width:100%}
+.card{overflow:hidden}
+.day-card{overflow:hidden}
+.day-card p{overflow-wrap:anywhere}
+.select,.input{max-width:100%;min-width:0}
+.nav{width:calc(100% - 28px);max-width:560px}
+img,video,iframe,svg{max-width:100%}
+@media(max-width:760px){
+  .shell{width:100%;padding-left:14px;padding-right:14px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .day-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card{width:100%;padding:18px}
+  .hero{width:100%}
+  .toolbar{flex-wrap:wrap}
+}
+@media(max-width:500px){
+  .shell{padding-left:12px;padding-right:12px}
+  .day-grid{grid-template-columns:minmax(0,1fr)}
+  .day-card{width:100%}
+  .stat-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stat{padding:12px 9px}
+  .stat b{font-size:21px}
+  .stat span{font-size:9px;letter-spacing:-.01em}
+  .nav{width:calc(100% - 24px);left:50%;right:auto}
+  .topbar{width:100%}
+}
 </style>
 </head>
 <body>
@@ -247,15 +279,15 @@ function renderNav(){
 }
 function homeView(){
  const total=allExercises().length,sessions=state.records.length,last=state.records[0];
- return `<div class="hero"><div class="eyebrow">Buongiorno</div><h1>${esc(firstName())}.</h1><p>Il tuo allenamento, i tuoi carichi e i tuoi progressi. I tuoi dati, sempre sincronizzati..</p></div>
- <div class="grid"><div class="card"><div class="workout-head"><div><div class="eyebrow">PROGRAMMA</div><h2>La tua scheda</h2></div><span class="pill">14/09 → 18/10</span></div>
- <div class="day-grid">${Object.entries(DAYS).map(([d,x])=>`<div class="day-card"><div class="day-number">GIORNO ${d}</div><h3>${x.name}</h3><p>${x.subtitle}<br>${x.items.length} esercizi</p><button data-day="${d}">Apri allenamento</button></div>`).join("")}</div></div>
- <div class="card"><div class="eyebrow">PANORAMICA</div><h2>Attività</h2><div class="stat-row"><div class="stat"><b>${sessions}</b><span>SESSIONI</span></div><div class="stat"><b>${total}</b><span>ESERCIZI</span></div><div class="stat"><b>${state.records.length?dateIT(state.records[0].date):"—"}</b><span>ULTIMO</span></div></div>
- <div style="margin-top:18px;padding:15px;border-radius:18px;background:rgba(255,255,255,.6)"><div class="eyebrow">ULTIMO ALLENAMENTO</div><p style="margin:7px 0 0;font-weight:750">${last?`Giorno ${last.day} · ${dateIT(last.date)}`:"Nessun allenamento registrato"}</p></div></div></div>`;
+ return `<div class="hero"><div class="eyebrow">Buongiorno</div><h1>${esc(firstName())}.</h1><p>Tutto il tuo allenamento, in un unico posto.</p></div>
+ <div class="grid"><div class="card"><div class="workout-head"><div><div class="eyebrow">ALLENAMENTO</div><h2>La tua settimana</h2></div><span class="pill">14/09 → 18/10</span></div>
+ <div class="day-grid">${Object.entries(DAYS).map(([d,x])=>`<div class="day-card"><div class="day-number">GIORNO ${d}</div><h3>${x.name}</h3><p><span class="day-focus">Cosa si allena</span><br>${x.subtitle}<br><span class="day-count">${x.items.length} esercizi</span></p><button data-day="${d}">Vai al giorno</button></div>`).join("")}</div></div>
+ <div class="card"><div class="eyebrow">RIEPILOGO</div><h2>Il tuo percorso</h2><div class="stat-row"><div class="stat"><b>${sessions}</b><span>ALLENAMENTI</span></div><div class="stat"><b>${total}</b><span>ESERCIZI TOTALI</span></div><div class="stat"><b>${state.records.length?dateIT(state.records[0].date):"—"}</b><span>ULTIMO GIORNO</span></div></div>
+ <div style="margin-top:18px;padding:15px;border-radius:18px;background:rgba(255,255,255,.6)"><div class="eyebrow">ATTIVITÀ RECENTE</div><p style="margin:7px 0 0;font-weight:750">${last?`Giorno ${last.day} · ${dateIT(last.date)}`:"Ancora nessun allenamento salvato"}</p></div></div></div>`;
 }
 function workoutView(){
  const d=DAYS[state.day];
- return `<div class="hero" style="padding-bottom:15px"><div class="eyebrow">ALLENAMENTO</div><h1>Giorno ${state.day}.</h1><p>${d.name} · ${d.subtitle}. Inserisci il carico usato per ogni esercizio.</p></div>
+ return `<div class="hero" style="padding-bottom:15px"><div class="eyebrow">ALLENAMENTO</div><h1>Giorno ${state.day}.</h1><p><strong>Cosa si allena:</strong> ${d.subtitle}</p></div>
  <div class="guided-launch"><button class="primary" data-guided-start="${state.day}">▶ Avvia allenamento guidato</button></div><div class="card"><div class="toolbar"><select class="select" data-action="day-select" style="max-width:260px">${Object.entries(DAYS).map(([k,v])=>`<option value="${k}" ${+k===+state.day?"selected":""}>Giorno ${k} · ${v.name}</option>`).join("")}</select><span class="pill">3’ tra gli esercizi</span></div>
  <div id="exercise-list">${d.items.map(i=>{const prior=lastLoad(i[0]);return `<div class="exercise"><div><div class="name">${esc(i[1])}</div><div class="meta">${i[2]} · recupero ${i[3]}${prior!==""?` · ultimo ${esc(prior)} kg`:""}</div></div><div class="load"><input class="input" inputmode="decimal" placeholder="Carico" data-load="${i[0]}" value="${state.editing?.loads?.[i[0]]?.weight??""}"><span class="unit">kg</span></div><a class="video" href="${i[4]}" target="_blank" rel="noopener">Video ↗</a></div>`}).join("")}</div>
  <div class="section-actions"><button class="primary" data-action="save">Salva allenamento</button><button class="secondary" data-action="clear">Svuota</button></div></div>`;
@@ -265,7 +297,7 @@ function progressView(){
  state.records.slice().reverse().forEach(r=>{const x=recordLoads(r)[selected.id];if(x?.weight!==undefined&&x.weight!=="")points.push({date:r.date,w:+x.weight})});
  let max=Math.max(1,...points.map(p=>p.w)),min=Math.min(0,...points.map(p=>p.w)),W=900,H=260,pad=35;
  const path=points.length?points.map((p,i)=>{const x=pad+(i/Math.max(1,points.length-1))*(W-pad*2),y=H-pad-((p.w-min)/(max-min||1))*(H-pad*2);return `${i?"L":"M"} ${x} ${y}`}).join(" "):"";
- return `<div class="hero"><div class="eyebrow">PROGRESSI</div><h1>Segui i tuoi progressi.</h1><p>Confronta i tuoi carichi nel tempo, esercizio per esercizio.</p></div>
+ return `<div class="hero"><div class="eyebrow">PROGRESSI</div><h1>I tuoi numeri.</h1><p>Guarda come cambiano i carichi nel tempo.</p></div>
  <div class="card"><div class="toolbar"><select class="select" data-action="chart-select" style="max-width:500px">${Object.entries(DAYS).map(([d,v])=>`<optgroup label="Giorno ${d} · ${v.name}">${v.items.map(i=>`<option value="${i[0]}" ${i[0]===selected.id?"selected":""}>${esc(i[1])}</option>`).join("")}</optgroup>`).join("")}</select><span class="pill">${points.length} rilevazioni</span></div>
  <div class="chart">${points.length?`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#007aff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>${points.map((p,i)=>{const x=pad+(i/Math.max(1,points.length-1))*(W-pad*2),y=H-pad-((p.w-min)/(max-min||1))*(H-pad*2);return `<circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="#007aff" stroke-width="4"><title>${dateIT(p.date)} · ${p.w} kg</title></circle>`}).join("")}</svg>`:`<div class="empty">Registra il primo carico per vedere il grafico.</div>`}</div>
  <div class="chart-labels"><span>${points[0]?dateIT(points[0].date):""}</span><strong>${points.length?max+" kg":"—"}</strong><span>${points.at(-1)?dateIT(points.at(-1).date):""}</span></div></div>
@@ -278,7 +310,7 @@ function renderAuth(){
  void app.offsetWidth;
  app.classList.add("page-enter-up");
  document.getElementById("nav-root").innerHTML="";
- app.innerHTML=`<main class="login"><section class="login-box"><div class="login-logo">R</div><div class="eyebrow">PERSONAL WORKOUT</div><h1>Il tuo allenamento.</h1><p>Un'esperienza semplice, privata e sincronizzata. Accedi per ritrovare i tuoi dati da qualsiasi dispositivo.</p><div class="tabs"><button data-auth="login" class="${login?"active":""}">Accedi</button><button data-auth="signup" class="${!login?"active":""}">Crea account</button></div>
+ app.innerHTML=`<main class="login"><section class="login-box"><div class="login-logo">R</div><div class="eyebrow">PERSONAL WORKOUT</div><h1>Il tuo allenamento.</h1><p>Il tuo spazio personale per allenarti, registrare i carichi e seguire i progressi.</p><div class="tabs"><button data-auth="login" class="${login?"active":""}">Accedi</button><button data-auth="signup" class="${!login?"active":""}">Crea account</button></div>
  <form id="auth-form"><div class="field"><label>Email</label><input class="input" type="email" name="email" required autocomplete="email" placeholder="nome@email.com"></div><div class="field"><label>Password</label><input class="input" type="password" name="password" required minlength="6" autocomplete="${login?"current-password":"new-password"}" placeholder="Almeno 6 caratteri"></div>${!login?`<div class="field"><label>Nome</label><input class="input" name="name" required placeholder="Riccardo"></div>`:""}<button class="primary full" type="submit">${login?"Accedi":"Crea account"}</button><div id="auth-msg"></div></form></section></main>`;
 }
 async function loadData(){

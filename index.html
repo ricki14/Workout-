@@ -158,9 +158,9 @@ img,video,iframe,svg{max-width:100%}
   .topbar{width:100%}
 }
 
-.stat-row .stat:last-child{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.stat-row .stat:last-child b.stat-date{width:100%;display:block;text-align:center;margin:0 auto;line-height:1.1}
-.stat-row .stat:last-child .stat-date-label{width:100%;display:block;text-align:center;margin:2px auto 0}
+.stat-row .stat:last-child{display:grid;grid-template-columns:1fr;justify-items:center;align-content:center;text-align:center;padding-left:4px;padding-right:4px}
+.stat-row .stat:last-child b.stat-date{width:auto;max-width:100%;display:block;text-align:center;margin:0;line-height:1.1;font-size:16px;letter-spacing:-.035em;white-space:nowrap;overflow:visible;text-overflow:clip;font-variant-numeric:tabular-nums}
+.stat-row .stat:last-child .stat-date-label{width:auto;display:block;text-align:center;margin:3px 0 0}
 
 /* Full date visibility */
 @media(max-width:760px){
@@ -168,7 +168,7 @@ img,video,iframe,svg{max-width:100%}
   .stat{padding:12px 7px}
   .stat b.stat-date{font-size:clamp(12px,3.55vw,17px);letter-spacing:-.055em;white-space:nowrap;overflow:visible}
   .stat span{font-size:10px;line-height:1.15}
-  .stat-row .stat:last-child b.stat-date{font-size:clamp(12px,3.45vw,17px);letter-spacing:-.05em}
+  .stat-row .stat:last-child b.stat-date{font-size:clamp(13px,3.25vw,16px);letter-spacing:-.04em}
 }
 </style>
 </head>

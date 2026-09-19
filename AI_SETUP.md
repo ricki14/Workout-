@@ -1,31 +1,35 @@
-# Importazione PDF con AI
+# Importazione PDF con AI — configurazione una tantum
 
-La web app usa una Supabase Edge Function per analizzare il PDF senza esporre la chiave OpenAI nel browser.
+L'app è già predisposta: l'utente finale deve solo scegliere il PDF. La chiave OpenAI NON va mai inserita nell'HTML.
 
-## 1. Configura la funzione
+## 1. Crea la funzione in Supabase
+Nel progetto Supabase apri **Edge Functions** e crea una funzione chiamata:
 
-Dal progetto Supabase, installa/configura la CLI Supabase e dalla cartella che contiene `supabase/functions` esegui:
+`parse-workout-pdf`
 
-```bash
-supabase functions deploy parse-workout-pdf
-```
+Copia il contenuto di:
 
-## 2. Imposta il segreto OpenAI
+`supabase/functions/parse-workout-pdf/index.ts`
 
-```bash
-supabase secrets set OPENAI_API_KEY="LA_TUA_CHIAVE_OPENAI"
-```
+## 2. Aggiungi la chiave OpenAI come Secret
+In Supabase vai in **Edge Functions → Secrets** e aggiungi:
 
-La chiave **non deve mai essere inserita nell'HTML** o in GitHub.
+`OPENAI_API_KEY`
 
-## 3. Come funziona
+come valore inserisci la tua chiave API OpenAI.
 
-1. L'atleta seleziona un PDF.
-2. Il browser invia il PDF alla Edge Function con il token della sessione Supabase.
-3. La funzione verifica che l'utente sia autenticato.
-4. Il PDF viene passato al modello tramite Responses API.
-5. L'AI restituisce una struttura JSON della scheda.
-6. L'app apre automaticamente l'editor della scheda.
-7. L'utente controlla/modifica i dati e solo dopo preme **Salva scheda**.
+Non inserirla mai in `index.html` o in GitHub.
 
-Il PDF non viene salvato come file permanente dall'app.
+## 3. Deploy
+Pubblica/deploya la funzione `parse-workout-pdf`.
+
+L'app la chiama automaticamente a:
+
+`/functions/v1/parse-workout-pdf`
+
+## 4. Uso per l'utente
+Dopo il deploy non serve configurare nulla sul telefono/computer:
+
+**Home → Importa PDF con AI → Scegli PDF → Analisi → Controlla → Salva scheda**
+
+L'AI restituisce una scheda modificabile prima del salvataggio. I video restano facoltativi e possono essere aggiunti successivamente dall'esercizio.

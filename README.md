@@ -1,3 +1,7 @@
-# Riccardo Workout — Guided Mode v4
+# Riccardo Workout v19
 
-Modalità allenamento guidata con timer di recupero a due soglie, avanzamento per serie/esercizio, salvataggio automatico del carico a fine esercizio e UI Apple-inspired.
+- Fixed signup handler bug that prevented account creation.
+- Signup now requires a password of at least 8 characters, including lowercase, uppercase, and a number.
+- Password confirmation is checked before calling Supabase.
+- Added live password-strength and password-match feedback.
+- Submit button shows progress while creating the account.

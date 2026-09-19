@@ -128,38 +128,39 @@ const WORKOUTS=[
 ];
 const SUPABASE_URL="https://asuehwoueszxyvhmycip.supabase.co";
 const SUPABASE_KEY="sb_publishable_vJ4j_kGvgLoEF-qkDOnzyQ_JbVZ2iTN";
-let supabase=null;
+let sbClient=null;
 let history=[], currentDay=1, isSignup=false, profile=null, clients=[];
 
 async function loadSupabase(){
-  if(window.supabase) return window.supabase;
+  if(window.supabase && typeof window.supabase.createClient==="function") return window.supabase;
   const urls=[
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-    "https://unpkg.com/@supabase/supabase-js@2"
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
+    "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
   ];
   for(const url of urls){
     try{
       await new Promise((resolve,reject)=>{
         const s=document.createElement("script");
         s.src=url;
-        s.onload=resolve;
-        s.onerror=reject;
+        s.async=true;
+        s.onload=()=>resolve();
+        s.onerror=()=>reject(new Error("script load failed"));
         document.head.appendChild(s);
       });
-      if(window.supabase) return window.supabase;
+      if(window.supabase && typeof window.supabase.createClient==="function") return window.supabase;
     }catch(e){}
   }
-  throw new Error("Non riesco a caricare il collegamento al database. Controlla la connessione internet.");
+  throw new Error("Non riesco a caricare Supabase. Controlla la connessione internet oppure prova a ricaricare la pagina.");
 }
 
 async function initSupabase(){
   try{
     const lib=await loadSupabase();
-    supabase=lib.createClient(SUPABASE_URL,SUPABASE_KEY);
+    sbClient=lib.createClient(SUPABASE_URL,SUPABASE_KEY);
     $("authSubmit").disabled=false;
     $("showLogin").disabled=false;
     $("showSignup").disabled=false;
-    const {data:{session}}=await supabase.auth.getSession();
+    const {data:{session}}=await sbClient.auth.getSession();
     if(session) await boot();
   }catch(e){
     $("authSubmit").disabled=false;
@@ -173,18 +174,18 @@ const fmt=d=>{const [y,m,day]=d.split("-").map(Number);return new Date(y,m-1,day
 function msg(id,text,error=false){$(id).innerHTML=text?`<div class="status ${error?"error":""}">${text}</div>`:"";}
 
 async function getProfile(){
-  const {data:{user}}=await supabase.auth.getUser();
+  const {data:{user}}=await sbClient.auth.getUser();
   if(!user)return null;
-  const {data,error}=await supabase.from("profiles").select("*").eq("id",user.id).single();
+  const {data,error}=await sbClient.from("profiles").select("*").eq("id",user.id).single();
   if(error)throw error; return data;
 }
 async function loadHistory(){
-  const {data,error}=await supabase.from("workout_records").select("*").order("date",{ascending:true});
+  const {data,error}=await sbClient.from("workout_records").select("*").order("date",{ascending:true});
   if(error)throw error;
   history=(data||[]).map(r=>({date:r.date,day:r.day,loads:r.loads||{},id:r.id,user_id:r.user_id}));
 }
 async function upsertRecord(date,day,loads){
-  const {data,error}=await supabase.from("workout_records").upsert({user_id:profile.id,date,day,loads},{onConflict:"user_id,date,day"}).select().single();
+  const {data,error}=await sbClient.from("workout_records").upsert({user_id:profile.id,date,day,loads},{onConflict:"user_id,date,day"}).select().single();
   if(error)throw error;
   return data;
 }
@@ -198,7 +199,7 @@ async function saveCurrentLoad(input){
       r={...saved,loads:saved.loads||{}}; const idx=history.findIndex(x=>x.date===today()&&x.day===currentDay);
       if(idx>=0)history[idx]=r;else history.push(r);
     }else{
-      await supabase.from("workout_records").delete().eq("user_id",profile.id).eq("date",today()).eq("day",currentDay);
+      await sbClient.from("workout_records").delete().eq("user_id",profile.id).eq("date",today()).eq("day",currentDay);
       history=history.filter(x=>!(x.date===today()&&x.day===currentDay));
     }
     renderHistory();renderProgress();
@@ -242,16 +243,16 @@ async function saveEdited(){
       const day=Number(inp.dataset.day),i=Number(inp.dataset.index);let r=history.find(x=>x.date===date&&x.day===day);const loads={...(r?.loads||{})};
       if(inp.value==="")delete loads[i];else loads[i]=Number(inp.value);
       if(Object.keys(loads).length){const saved=await upsertRecord(date,day,loads);const idx=history.findIndex(x=>x.date===date&&x.day===day);if(idx>=0)history[idx]=saved;else history.push(saved);}
-      else if(r){await supabase.from("workout_records").delete().eq("user_id",profile.id).eq("date",date).eq("day",day);history=history.filter(x=>!(x.date===date&&x.day===day));}
+      else if(r){await sbClient.from("workout_records").delete().eq("user_id",profile.id).eq("date",date).eq("day",day);history=history.filter(x=>!(x.date===date&&x.day===day));}
     }
     $("editModal").classList.remove("open");renderWorkout();renderHistory();renderProgress();
   }catch(e){alert("Errore: "+e.message);}
 }
 async function signup(){
-  if(!supabase){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
+  if(!sbClient){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
   const email=$("email").value.trim(), password=$("password").value;
   if(!email || password.length<6){msg("authMsg","Inserisci una email valida e una password di almeno 6 caratteri.",true);return;}
-  const {data,error}=await supabase.auth.signUp({email,password});
+  const {data,error}=await sbClient.auth.signUp({email,password});
   if(error){msg("authMsg",error.message,true);return;}
   if(data.user){
     if(data.session) await boot();
@@ -259,10 +260,10 @@ async function signup(){
   }
 }
 async function login(){
-  if(!supabase){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
+  if(!sbClient){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
   const email=$("email").value.trim(), password=$("password").value;
   if(!email || !password){msg("authMsg","Inserisci email e password.",true);return;}
-  const {error}=await supabase.auth.signInWithPassword({email,password});
+  const {error}=await sbClient.auth.signInWithPassword({email,password});
   if(error){msg("authMsg",error.message,true);return;}await boot();
 }
 async function boot(){
@@ -278,11 +279,11 @@ async function bootTrainer(){
   $("trainerView").classList.remove("hidden");await loadClients();
 }
 async function loadClients(){
-  const {data,error}=await supabase.from("trainer_links").select("client_id,profiles!trainer_links_client_id_fkey(id,email,client_code)").eq("trainer_id",profile.id);
+  const {data,error}=await sbClient.from("trainer_links").select("client_id,profiles!trainer_links_client_id_fkey(id,email,client_code)").eq("trainer_id",profile.id);
   if(error){msg("trainerMsg",error.message,true);return;}clients=(data||[]).map(x=>x.profiles);$("clientSelect").innerHTML=clients.map(c=>`<option value="${c.id}">${c.email}</option>`).join("");if(clients.length)await loadTrainerProgress(clients[0].id);
 }
 async function loadTrainerProgress(id){
-  const c=clients.find(x=>x.id===id);const {data,error}=await supabase.from("workout_records").select("*").eq("user_id",id).order("date");if(error){$("trainerProgress").textContent=error.message;return;}
+  const c=clients.find(x=>x.id===id);const {data,error}=await sbClient.from("workout_records").select("*").eq("user_id",id).order("date");if(error){$("trainerProgress").textContent=error.message;return;}
   $("trainerProgress").innerHTML=`<h2>Progressi — ${c?.email||""}</h2>`+(data||[]).map(r=>`<div class="history-row"><b>${fmt(r.date)}</b><span>Giorno ${r.day}</span><span>${Object.values(r.loads||{}).join(" kg · ")} kg</span></div>`).join("")||'<div class="empty">Nessun dato.</div>';
 }
 $("showLogin").addEventListener("click",()=>{
@@ -317,7 +318,8 @@ $("progressTable").onclick=e=>{const b=e.target.closest(".edit-history");if(b)op
 $("linkTrainer").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("linkCode").value.trim().toUpperCase()});msg("linkMsg",error?error.message:"PT collegato.");};
 $("connectClient").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("trainerClientCode").value.trim().toUpperCase()});msg("trainerMsg",error?error.message:"Cliente collegato.");if(!error)await loadClients();};
 $("clientSelect").onchange=e=>loadTrainerProgress(e.target.value);
-$("logout").onclick=async()=>{await supabase.auth.signOut();location.reload();};$("trainerLogout").onclick=async()=>{await supabase.auth.signOut();location.reload();};
+$("logout").onclick=async()=>{await sbClient.auth.signOut();location.reload();};$("trainerLogout").onclick=async()=>{await sbClient.auth.signOut();location.reload();};
+msg("authMsg","Connessione al database in corso...");
 initSupabase();
 </script>
 </body></html>

@@ -462,6 +462,40 @@ input:focus,textarea:focus,select:focus{
     transition-duration:.01ms !important;
   }
 }
+
+/* LEVEL v33 — reliable visual interaction feedback */
+.level-interactive-feedback{
+  -webkit-tap-highlight-color:transparent !important;
+  touch-action:manipulation;
+}
+.level-interactive-feedback.level-pressing{
+  transform:scale(.985) !important;
+  filter:brightness(.98) !important;
+}
+.level-ripple{
+  position:absolute !important;
+  z-index:20 !important;
+  border-radius:999px !important;
+  pointer-events:none !important;
+  background:rgba(255,90,0,.20) !important;
+  transform:scale(0) !important;
+  opacity:.9 !important;
+  animation:levelRippleV33 .48s cubic-bezier(.2,.8,.2,1) forwards !important;
+}
+@keyframes levelRippleV33{
+  0%{transform:scale(0);opacity:.38}
+  70%{transform:scale(1);opacity:.16}
+  100%{transform:scale(1.12);opacity:0}
+}
+.level-feedback-pulse{animation:levelFeedbackPulse .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes levelFeedbackPulse{
+  0%{transform:scale(1)}
+  45%{transform:scale(.975)}
+  100%{transform:scale(1)}
+}
+@media (prefers-reduced-motion:reduce){
+  .level-ripple,.level-feedback-pulse{animation:none !important}
+}
 </style>
 
 </head>
@@ -763,151 +797,123 @@ document.addEventListener("keydown",e=>{if(!state.guided)return;if(e.key==="Esca
 sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=session.user;await loadProfile();await loadData();render()}else if(!state.user){renderAuth()}});
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){state.user=data.session.user;await loadProfile();await loadData();render()}else renderAuth()})();
 </script>
-<script id="gestures-v24-js">(function(){  let active=null;  const THRESHOLD=72, EDGE=28;  const isInteractive=(el)=>!!el.closest('input,textarea,select,button,a,[contenteditable="true"]');  const reset=(el)=>{if(!el)return;el.classList.remove('gesture-dragging','gesture-settling');el.style.transform='';};  const closeModal=()=>{    const modal=document.getElementById('modal');    if(modal?.classList.contains('show')){      const c=modal.querySelector('[data-close]');      if(c)c.click(); else modal.classList.remove('show');      return true;    }    return false;  };  const closeGuided=()=>{    const root=document.getElementById('guided-root');    if(root?.querySelector('.guided-overlay.show')){      const c=root.querySelector('[data-guided="close"]');      if(c)c.click();      return true;    }    return false;  };  document.addEventListener('touchstart',e=>{    if(e.touches.length!==1)return;    const t=e.touches[0], target=e.target;    const sheet=target.closest('.sheet,.guided-sheet');    const nav=document.querySelector('.nav');    if(nav && nav.contains(target)) return;    active={x:t.clientX,y:t.clientY,lastX:t.clientX,lastY:t.clientY,target,sheet,drag:false,edge:t.clientX<=EDGE};  },{passive:true});  document.addEventListener('touchmove',e=>{    if(!active||e.touches.length!==1)return;    const t=e.touches[0]; active.lastX=t.clientX; active.lastY=t.clientY;    const dx=t.clientX-active.x, dy=t.clientY-active.y;    if(Math.abs(dx)+Math.abs(dy)<8)return;    if(isInteractive(active.target))return;    // Bottom sheets: follow a downward drag like a native iOS sheet.    if(active.sheet && dy>8 && Math.abs(dy)>Math.abs(dx)*1.15){      if(active.sheet.scrollTop>0)return;      active.drag=true;      active.sheet.classList.add('gesture-dragging');      active.sheet.style.transform=`translateY(${Math.min(dy,260)}px)`;      e.preventDefault();    }  },{passive:false});  document.addEventListener('touchend',()=>{    if(!active)return;    const a=active, dx=a.lastX-a.x, dy=a.lastY-a.y; active=null;    if(a.sheet && a.drag){      if(dy>THRESHOLD){        a.sheet.classList.add('gesture-settling');        a.sheet.style.transform='translateY(110%)';        setTimeout(()=>{          if(a.sheet.classList.contains('guided-sheet')) closeGuided(); else closeModal();          reset(a.sheet);        },280);      }else{        a.sheet.classList.add('gesture-settling');        a.sheet.style.transform='translateY(0)';        setTimeout(()=>reset(a.sheet),290);      }      return;    }    // iOS-like edge swipe back. Only starts very close to the left edge.    if(a.edge && dx>THRESHOLD && Math.abs(dx)>Math.abs(dy)*1.25){      if(closeModal()||closeGuided())return;      if(typeof state!=='undefined' && state.view!=='home'){        const app=document.getElementById('app');        app?.classList.add('page-exit');        setTimeout(()=>{          if(state.view==='progress')state.view='workout';          else if(state.view==='workout')state.view='home';          state.editing=null; render();        },120);      }    }  },{passive:true});  // Light horizontal swipe between main sections, away from controls.  document.addEventListener('touchend',function sectionSwipe(e){    // handled above; kept intentionally separate for readability/future tuning  },{passive:true});})();</script><style id="level-brand-v25">
+<style id="level-brand-v25">
 .level-mark{width:100%;height:100%;display:block}.level-app-icon{display:grid;place-items:center;color:#111}.level-app-icon .level-mark{width:25px;height:25px}.level-login-logo{display:grid;place-items:center;color:#111;font-size:0}.level-login-logo .level-mark{width:64px;height:64px}.brand strong{letter-spacing:-.02em}.pill{background:rgba(255,90,0,.1)!important;color:#ff5a00!important}.chart svg path{stroke:#ff5a00!important}.chart svg circle{stroke:#ff5a00!important}
 </style>
 
-<script id="level-gestures-v30">
+
+
+
+
+
+<script id="level-interactions-v33">
 (function(){
-  let sx=0, sy=0, active=false, edge=false, targetSheet=null, sheetStartY=0, sheetMoved=false;
+  const TAP_SELECTOR='button,a,.nav-item,.setup-card,.card-action,.icon-btn,[role="button"]';
+  const RIPPLE_SELECTOR='button,.nav-item,.setup-card,.card-action,.icon-btn,.primary,.secondary,[role="button"]';
+  const isFormControl=el=>!!el?.closest('input,textarea,select,[contenteditable="true"]');
+  const vibrate=ms=>{ try{ if('vibrate' in navigator) navigator.vibrate(ms); }catch(_){} };
 
-  const interactive = el => el && el.closest('input,textarea,select,button,a,[contenteditable="true"]');
-  const sheets = () => [...document.querySelectorAll(
-    '.modal.open,.modal.show,.sheet.open,.bottom-sheet.open,.guided-overlay.open,.ai-import-modal.open,[role="dialog"]'
-  )].filter(el => {
-    const s=getComputedStyle(el);
-    return s.display!=='none' && s.visibility!=='hidden';
-  });
-
-  document.addEventListener('pointerdown', e=>{
-    if(e.pointerType!=='touch') return;
-    sx=e.clientX; sy=e.clientY; active=true; sheetMoved=false; targetSheet=null;
-    edge=sx<28;
-    const openSheets=sheets();
-    if(openSheets.length){
-      const top=openSheets[openSheets.length-1];
-      const panel=top.querySelector('.modal-card,.sheet-card,.bottom-sheet,.guided-sheet,.ai-import-card,[role="document"]')||top.firstElementChild;
-      if(panel && panel.contains(e.target) && !interactive(e.target)){
-        targetSheet={overlay:top,panel};
-        sheetStartY=parseFloat(panel.dataset.gestureY||'0')||0;
-      }
-    }
-  },{passive:true});
-
-  document.addEventListener('pointermove', e=>{
-    if(!active || e.pointerType!=='touch') return;
-    const dx=e.clientX-sx, dy=e.clientY-sy;
-    if(targetSheet && dy>8 && Math.abs(dy)>Math.abs(dx)*1.15){
-      sheetMoved=true;
-      const y=Math.max(0,Math.min(dy,window.innerHeight*.65));
-      targetSheet.panel.style.transform=`translateY(${y}px)`;
-      targetSheet.panel.dataset.gestureY=String(y);
-      e.preventDefault();
-      return;
-    }
-  },{passive:false});
-
-  document.addEventListener('pointerup', e=>{
-    if(!active || e.pointerType!=='touch') return;
-    const dx=e.clientX-sx, dy=e.clientY-sy;
-    active=false;
-
-    if(targetSheet && sheetMoved){
-      const threshold=Math.min(180,window.innerHeight*.22);
-      if(dy>threshold){
-        if(targetSheet.overlay.querySelector('[data-close]')) targetSheet.overlay.querySelector('[data-close]').click();
-        else targetSheet.overlay.classList.remove('open','show');
-        targetSheet.panel.style.transform='';
-        targetSheet.panel.dataset.gestureY='0';
-        navigator.vibrate?.(10);
-      }else{
-        targetSheet.panel.style.transition='transform .28s cubic-bezier(.2,.8,.2,1)';
-        targetSheet.panel.style.transform='translateY(0)';
-        targetSheet.panel.dataset.gestureY='0';
-        setTimeout(()=>targetSheet.panel.style.transition='',300);
-      }
-      return;
-    }
-
-    if(edge && dx>70 && Math.abs(dx)>Math.abs(dy)*1.25){
-      const close=document.querySelector('.modal.open [data-close],.modal.show [data-close],.sheet.open [data-close],.bottom-sheet.open [data-close],.guided-overlay.open [data-close],.ai-import-modal.open [data-close]');
-      if(close){close.click(); navigator.vibrate?.(8); return;}
-      if(typeof window.goBack==='function'){window.goBack();navigator.vibrate?.(8);}
-      else if(history.length>1){history.back();navigator.vibrate?.(8);}
-    }
-  },{passive:true});
-
-  // Add restrained haptic feedback to primary interactions.
-  document.addEventListener('click', e=>{
-    const el=e.target.closest('button,[role="button"],.nav-item,.card-action');
-    if(!el) return;
-    if(el.disabled) return;
-    if(navigator.vibrate){
-      const strong=el.matches('.primary,.btn-primary,.primary-action,.nav-item.active');
-      navigator.vibrate(strong?10:6);
-    }
-  },{passive:true});
-})();
-</script>
-
-
-<script id="level-premium-v32-js">
-(function(){
-  const vibrate=(ms=7)=>{
-    try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){}
-  };
-
-  /* Subtle tactile ripple on tappable elements */
-  document.addEventListener('pointerdown',e=>{
-    if(e.pointerType!=='touch') return;
-    const el=e.target.closest('button,.icon-btn,.setup-card,.nav-item,.primary,.secondary,[role="button"]');
+  function addRipple(el,x,y){
     if(!el || el.disabled) return;
-    if(getComputedStyle(el).position==='static') el.style.position='relative';
-    if(getComputedStyle(el).overflow==='visible') el.style.overflow='hidden';
+    const cs=getComputedStyle(el);
+    if(cs.position==='static') el.style.position='relative';
+    if(cs.overflow==='visible') el.style.overflow='hidden';
     const r=el.getBoundingClientRect();
-    const size=Math.max(r.width,r.height)*1.15;
+    const size=Math.max(r.width,r.height)*1.25;
     const ripple=document.createElement('span');
     ripple.className='level-ripple';
-    ripple.style.width=ripple.style.height=size+'px';
-    ripple.style.left=(e.clientX-r.left-size/2)+'px';
-    ripple.style.top=(e.clientY-r.top-size/2)+'px';
+    ripple.style.width=size+'px';
+    ripple.style.height=size+'px';
+    ripple.style.left=(x-r.left-size/2)+'px';
+    ripple.style.top=(y-r.top-size/2)+'px';
     el.appendChild(ripple);
-    setTimeout(()=>ripple.remove(),550);
+    setTimeout(()=>ripple.remove(),520);
+  }
+
+  // One pointer system: visual feedback works on iPhone Safari even when vibration is unavailable.
+  document.addEventListener('pointerdown',e=>{
+    if(e.pointerType!=='touch') return;
+    const el=e.target.closest(TAP_SELECTOR);
+    if(!el || el.disabled || isFormControl(el)) return;
+    el.classList.add('level-interactive-feedback','level-pressing');
+    addRipple(e.target.closest(RIPPLE_SELECTOR)||el,e.clientX,e.clientY);
+    vibrate(el.matches('.primary,.guided-primary,.nav-item.active')?10:6);
   },{passive:true});
 
-  /* Progressive reveal for newly rendered sections/cards */
-  const reveal=()=>{
-    const nodes=document.querySelectorAll('.card,.hero,.setup-card,.stat,.workout-card,.history-item');
-    nodes.forEach((el,i)=>{
-      if(el.dataset.levelReveal) return;
-      el.dataset.levelReveal='1';
-      el.classList.add('level-reveal');
-      requestAnimationFrame(()=>setTimeout(()=>el.classList.add('level-visible'),Math.min(i*35,240)));
-    });
+  const release=e=>{
+    if(e.pointerType!=='touch') return;
+    const el=e.target.closest(TAP_SELECTOR);
+    if(el) el.classList.remove('level-pressing');
   };
-  const observer=new MutationObserver(()=>reveal());
-  observer.observe(document.body,{subtree:true,childList:true});
-  reveal();
+  document.addEventListener('pointerup',release,{passive:true});
+  document.addEventListener('pointercancel',release,{passive:true});
 
-  /* Extra tactile feedback for meaningful state changes */
+  // Also give mouse/trackpad clicks a visible micro-feedback, without relying on hover.
   document.addEventListener('click',e=>{
-    const el=e.target.closest('.guided-primary,.builder-add,.primary,.nav-item,.icon-btn');
-    if(!el || el.disabled) return;
-    vibrate(el.classList.contains('guided-primary')||el.classList.contains('primary')?10:6);
+    const el=e.target.closest(TAP_SELECTOR);
+    if(!el || el.disabled || isFormControl(el)) return;
+    el.classList.add('level-feedback-pulse');
+    setTimeout(()=>el.classList.remove('level-feedback-pulse'),340);
+  });
+
+  // Reliable bottom-sheet drag. Only one listener, so it cannot fight another gesture implementation.
+  let drag=null;
+  document.addEventListener('pointerdown',e=>{
+    if(e.pointerType!=='touch') return;
+    const panel=e.target.closest('.sheet,.guided-sheet,.bottom-sheet,.ai-import-sheet,.plan-builder-sheet');
+    if(!panel || e.target.closest('input,textarea,select,button,a')) return;
+    drag={panel,x:e.clientX,y:e.clientY,moved:false};
+  },{passive:true});
+  document.addEventListener('pointermove',e=>{
+    if(!drag || e.pointerType!=='touch') return;
+    const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    if(dy<8 || Math.abs(dy)<Math.abs(dx)*1.15) return;
+    if(drag.panel.scrollTop>0) return;
+    drag.moved=true;
+    drag.panel.style.transform='translateY('+Math.min(dy,window.innerHeight*.65)+'px)';
+  },{passive:true});
+  document.addEventListener('pointerup',e=>{
+    if(!drag || e.pointerType!=='touch') return;
+    const d=drag; drag=null;
+    if(!d.moved){d.panel.style.transform='';return;}
+    const dy=e.clientY-d.y;
+    d.panel.style.transition='transform .28s cubic-bezier(.2,.8,.2,1)';
+    if(dy>Math.min(160,window.innerHeight*.22)){
+      const close=d.panel.querySelector('[data-close]');
+      if(close) close.click();
+      else { d.panel.style.transform='translateY(110%)'; setTimeout(()=>d.panel.style.transform='',300); }
+      vibrate(10);
+    }else{
+      d.panel.style.transform='translateY(0)';
+      setTimeout(()=>d.panel.style.transition='',300);
+    }
   },{passive:true});
 
-  /* Desktop keyboard shortcuts — unobtrusive, no conflict with form fields */
-  document.addEventListener('keydown',e=>{
-    if(e.metaKey||e.ctrlKey||e.altKey) return;
-    const tag=(document.activeElement?.tagName||'').toLowerCase();
-    if(['input','textarea','select'].includes(tag)) return;
-    if(e.key==='Escape'){
-      const close=document.querySelector('.modal.open [data-close],.modal.show [data-close],.sheet.open [data-close],.bottom-sheet.open [data-close],.guided-overlay.open [data-close],.ai-import-modal.open [data-close]');
-      if(close){close.click();vibrate(8);}
+  // Edge-swipe back, intentionally limited to the left 24px.
+  let edge=null;
+  document.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='touch' && e.clientX<=24 && !e.target.closest('input,textarea,select,button,a')) edge={x:e.clientX,y:e.clientY};
+  },{passive:true});
+  document.addEventListener('pointerup',e=>{
+    if(!edge || e.pointerType!=='touch') return;
+    const dx=e.clientX-edge.x,dy=e.clientY-edge.y; edge=null;
+    if(dx<75 || Math.abs(dx)<Math.abs(dy)*1.25) return;
+    const close=document.querySelector('.modal.show [data-close],.modal.open [data-close],.guided-overlay.show [data-guided="close"],.guided-overlay.open [data-guided="close"]');
+    if(close){close.click();vibrate(8);return;}
+    if(typeof state!=='undefined' && state.view!=='home'){
+      if(state.view==='progress') state.view='workout';
+      else if(state.view==='workout') state.view='home';
+      state.editing=null; render(); vibrate(8);
     }
+  },{passive:true});
+
+  // Escape on desktop.
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape') return;
+    const close=document.querySelector('.modal.show [data-close],.modal.open [data-close],.guided-overlay.show [data-guided="close"],.guided-overlay.open [data-guided="close"]');
+    if(close) close.click();
   });
 })();
 </script>
-
 </body>
 </html>

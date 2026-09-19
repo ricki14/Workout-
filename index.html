@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="LEVEL">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 <style>
 :root{--bg:#f5f5f7;--card:rgba(255,255,255,.72);--text:#111114;--muted:#73737c;--line:rgba(0,0,0,.08);--accent:#ff5a00;--shadow:0 20px 55px rgba(0,0,0,.08);--radius:28px}
 *{box-sizing:border-box;min-width:0}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 20% -10%,#fff 0,#f5f5f7 35%,#eef0f4 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
@@ -498,6 +499,10 @@ input:focus,textarea:focus,select:focus{
 }
 </style>
 
+
+<style id="pushup-counter-css">
+.pushup-counter{position:fixed;inset:0;z-index:260;background:rgba(10,10,12,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);display:none;align-items:center;justify-content:center;padding:14px}.pushup-counter.show{display:flex}.pushup-card{width:min(560px,100%);background:#f8f8fa;border-radius:30px;padding:16px;box-shadow:0 30px 100px rgba(0,0,0,.35)}.pushup-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pushup-head h2{margin:0;font-size:25px;letter-spacing:-.045em}.pushup-close{width:40px;height:40px;border-radius:50%;background:#e8e8ed;font-size:22px}.pushup-stage{position:relative;aspect-ratio:3/4;background:#111;border-radius:24px;overflow:hidden}.pushup-stage video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.pushup-stage canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}.pushup-count{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.62);color:#fff;border-radius:18px;padding:8px 18px;text-align:center;min-width:105px}.pushup-count b{display:block;font-size:42px;line-height:1;letter-spacing:-.06em}.pushup-count span{font-size:10px;font-weight:800;letter-spacing:.08em}.pushup-status{position:absolute;bottom:14px;left:14px;right:14px;background:rgba(0,0,0,.62);color:#fff;border-radius:15px;padding:10px 12px;font-size:12px;font-weight:750;text-align:center}.pushup-actions{display:flex;gap:9px;margin-top:12px}.pushup-actions button{flex:1;min-height:50px;border-radius:16px;font-weight:850}.pushup-hint{color:#777;font-size:12px;line-height:1.4;margin:10px 2px 0;text-align:center}@media(max-width:500px){.pushup-counter{padding:0;align-items:flex-end}.pushup-card{border-radius:30px 30px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));max-height:96dvh}.pushup-stage{aspect-ratio:9/13}}
+</style>
 </head>
 <body>
 <div id="app"></div><div id="nav-root"></div><div id="modal" class="modal-wrap"></div><div id="guided-root"></div><div id="toast" class="toast"></div>
@@ -520,7 +525,7 @@ const state={user:null,profile:null,records:[],view:"home",day:1,editing:null,ch
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
 function dateIT(s){if(!s)return"";const [y,m,d]=s.split("-");return `${d}/${m}/${y}`}
 function today(){return new Date().toISOString().slice(0,10)}
-function firstName(){return state.profile?.full_name?.split(" ")[0]||state.user?.user_metadata?.full_name?.split(" ")[0]||state.user?.email?.split("@")[0]||"Utente"}
+function firstName(){return state.profile?.full_name?.split(" ")[0]||state.user?.user_metadata?.full_name?.split(" ")[0]||state.user?.email?.split("@")[0]||"Riccardo"}
 function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove("show"),2300)}
 function allExercises(){return Object.entries(DAYS).flatMap(([d,x])=>x.items.map(i=>({day:+d,id:i[0],name:i[1],scheme:i[2],rest:i[3],video:i[4]})))}
 function recordLoads(r){return r?.loads&&typeof r.loads==="object"?r.loads:{}}
@@ -607,6 +612,25 @@ function guidedProgress(){
  const total=items.reduce((sum,i)=>sum+parseSets(i[2]),0);
  return total?Math.min(100,(done/total)*100):0;
 }
+let pushupStream=null,pushupPose=null,pushupRAF=null,pushupCount=0,pushupPhase="up",pushupBusy=false;
+function pushupAngle(a,b,c){const ab={x:a.x-b.x,y:a.y-b.y},cb={x:c.x-b.x,y:c.y-b.y};const dot=ab.x*cb.x+ab.y*cb.y;const den=Math.hypot(ab.x,ab.y)*Math.hypot(cb.x,cb.y);return den?Math.acos(Math.max(-1,Math.min(1,dot/den)))*180/Math.PI:180}
+function closePushupCounter(){if(pushupRAF)cancelAnimationFrame(pushupRAF);pushupRAF=null;if(pushupStream){pushupStream.getTracks().forEach(t=>t.stop());pushupStream=null}if(pushupPose){try{pushupPose.close()}catch(e){}pushupPose=null}document.getElementById("pushup-counter")?.remove()}
+async function openPushupCounter(){
+ closePushupCounter();pushupCount=0;pushupPhase="up";pushupBusy=false;
+ const wrap=document.createElement("div");wrap.id="pushup-counter";wrap.className="pushup-counter show";wrap.innerHTML=`<div class="pushup-card"><div class="pushup-head"><div><div class="eyebrow">LEVEL · PUSH UP</div><h2>Conta le ripetizioni</h2></div><button class="pushup-close" data-pushup-close>×</button></div><div class="pushup-stage"><video id="pushup-video" autoplay muted playsinline></video><canvas id="pushup-canvas"></canvas><div class="pushup-count"><b id="pushup-number">0</b><span>RIPETIZIONI</span></div><div class="pushup-status" id="pushup-status">Inquadra tutto il corpo lateralmente e preparati.</div></div><div class="pushup-actions"><button class="secondary" data-pushup-close>Chiudi</button></div><p class="pushup-hint">Il conteggio avviene sul dispositivo. Per un rilevamento più preciso tieni visibili spalle, gomiti, anche e gambe.</p></div>`;document.body.appendChild(wrap);
+ try{pushupStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:960}},audio:false});const video=document.getElementById("pushup-video");video.srcObject=pushupStream;await video.play();
+ if(!window.Pose){document.getElementById("pushup-status").textContent="Il rilevamento non è disponibile in questo browser.";return}
+ const canvas=document.getElementById("pushup-canvas"),ctx=canvas.getContext("2d");
+ pushupPose=new Pose({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});pushupPose.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.55,minTrackingConfidence:.55});
+ pushupPose.onResults(r=>{canvas.width=r.image.width||video.videoWidth;canvas.height=r.image.height||video.videoHeight;ctx.clearRect(0,0,canvas.width,canvas.height);if(!r.poseLandmarks)return;const L=window.POSE_LANDMARKS||{LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_ELBOW:13,RIGHT_ELBOW:14,LEFT_WRIST:15,RIGHT_WRIST:16,LEFT_HIP:23,RIGHT_HIP:24};
+ const ls=r.poseLandmarks[L.LEFT_SHOULDER],le=r.poseLandmarks[L.LEFT_ELBOW],lw=r.poseLandmarks[L.LEFT_WRIST],lh=r.poseLandmarks[L.LEFT_HIP];const rs=r.poseLandmarks[L.RIGHT_SHOULDER],re=r.poseLandmarks[L.RIGHT_ELBOW],rw=r.poseLandmarks[L.RIGHT_WRIST],rh=r.poseLandmarks[L.RIGHT_HIP];
+ const candidates=[];if(ls&&le&&lw)candidates.push(pushupAngle(ls,le,lw));if(rs&&re&&rw)candidates.push(pushupAngle(rs,re,rw));const angle=candidates.length?Math.min(...candidates):null;
+ const status=document.getElementById("pushup-status");if(angle==null){status.textContent="Corpo non rilevato: allontanati leggermente.";return}
+ if(angle<105){pushupPhase="down";status.textContent="Posizione bassa ✓"}else if(angle>155&&pushupPhase==="down"){pushupPhase="up";pushupCount++;document.getElementById("pushup-number").textContent=pushupCount;status.textContent=`Ripetizione ${pushupCount} ✓`;}else if(angle>145){status.textContent="Posizione alta · scendi"}else{status.textContent="Movimento rilevato"}
+ });
+ const loop=async()=>{if(!document.getElementById("pushup-counter")||!pushupPose)return;if(!pushupBusy&&video.readyState>=2){pushupBusy=true;try{await pushupPose.send({image:video})}catch(e){}pushupBusy=false}pushupRAF=requestAnimationFrame(loop)};loop();
+ }catch(err){document.getElementById("pushup-status").textContent=err?.name==="NotAllowedError"?"Consenti l'accesso alla fotocamera per usare il conteggio.":"Fotocamera non disponibile su questo dispositivo."}
+}
 function renderGuided(){
  const root=document.getElementById("guided-root");const g=state.guided;if(!g){root.innerHTML="";return}
  const ex=guidedExercise();if(!ex){guidedClose();return}
@@ -614,7 +638,7 @@ function renderGuided(){
  const inExerciseRest=g.phase==="exercise-rest";
  const title=inExerciseRest?(next?"Recupero completato":"Allenamento completato"):ex[1];
  const sub=inExerciseRest?(next?`Preparati per ${next[1]}`:"Hai terminato tutti gli esercizi"):`${esc(ex[2])} · recupero ${esc(ex[3])}`;
- if(g.phase==="ready"){const rn=rememberedNote(ex[0]);body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(0)}</div><small>Pronto per la serie ${g.setIndex} di ${totalSets}</small></div>${rn?`<div class="guided-memory"><div class="guided-memory-kicker">NOTA DA RICORDARE</div><div>${esc(rn.note)}</div></div>`:""}<div class="guided-actions"><a class="guided-secondary" style="display:grid;place-items:center;text-decoration:none" href="${ex[4]}" target="_blank" rel="noopener">Guarda il video ↗</a><button class="guided-primary" data-guided="finish-set">Ho finito la serie</button><button class="guided-secondary" data-guided="close">Esci dall’allenamento</button></div>`}
+ if(g.phase==="ready"){const rn=rememberedNote(ex[0]);body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(0)}</div><small>Pronto per la serie ${g.setIndex} di ${totalSets}</small></div>${rn?`<div class="guided-memory"><div class="guided-memory-kicker">NOTA DA RICORDARE</div><div>${esc(rn.note)}</div></div>`:""}<div class="guided-actions">${/push\s*up/i.test(ex[1])?`<button class="guided-primary" data-guided="pushup-camera">▣ Conta push up con fotocamera</button>`:""}<a class="guided-secondary" style="display:grid;place-items:center;text-decoration:none" href="${ex[4]}" target="_blank" rel="noopener">Guarda il video ↗</a><button class="guided-primary" data-guided="finish-set">Ho finito la serie</button><button class="guided-secondary" data-guided="close">Esci dall’allenamento</button></div>`}
  else if(g.phase==="load"){body=`<div class="guided-timer"><div class="guided-time">✓</div><small>Tutte le ${totalSets} serie completate</small></div><div class="guided-load show"><label for="guided-load-input">Carico usato nell’esercizio</label><div style="display:flex;align-items:center;gap:8px"><input id="guided-load-input" class="input" inputmode="decimal" type="text" placeholder="es. 20" autocomplete="off"><strong>kg</strong></div><div class="guided-note">Un solo carico per l’intero esercizio. Verrà salvato automaticamente.</div></div><div class="guided-actions"><button class="guided-primary" data-guided="save-load">Salva e continua</button></div>`}
  else if(g.phase==="set-rest"||g.phase==="exercise-rest"){
    const range=`${guidedFormat(g.restMin)}${g.restMax>g.restMin?` → ${guidedFormat(g.restMax)}`:""}`;
@@ -632,7 +656,7 @@ function render(){
  void app.offsetWidth;
  app.classList.add("page-enter");
  app.innerHTML=`<div class="shell">
- <div class="topbar"><div class="brand"><div class="app-icon level-app-icon"><svg class="level-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M20 10h11v29.5L48 29v14L20 58V10Z" fill="currentColor"/><path d="M31 39.5h17L31 50.5v-11Z" fill="currentColor" opacity=".82"/></svg></div><div><strong>LEVEL</strong></div></div><button class="avatar" data-action="profile">${esc(firstName()[0]?.toUpperCase()||"R")}</button></div>
+ <div class="topbar"><div class="brand"><div class="app-icon level-app-icon"><svg class="level-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M20 10h11v29.5L48 29v14L20 58V10Z" fill="currentColor"/><path d="M31 39.5h17L31 50.5v-11Z" fill="currentColor" opacity=".82"/></svg></div><div><small>LEVEL</small><strong>Riccardo</strong></div></div><button class="avatar" data-action="profile">${esc(firstName()[0]?.toUpperCase()||"R")}</button></div>
  <section class="view ${state.view==="home"?"active":""}">${homeView()}</section>
  <section class="view ${state.view==="workout"?"active":""}">${workoutView()}</section>
  <section class="view ${state.view==="progress"?"active":""}">${progressView()}</section></div>`;
@@ -692,6 +716,7 @@ document.addEventListener("click",async e=>{
  const gs=e.target.closest("[data-guided-start]");if(gs){guidedStart(gs.dataset.guidedStart);return}
  const ga=e.target.closest("[data-guided]")?.dataset.guided;
  if(ga==="close"||ga==="close-finish"){guidedClose();return}
+ if(ga==="pushup-camera"){openPushupCounter();return}
  if(ga==="finish-set"){const ex=guidedExercise();const totalSets=parseSets(ex[2]);if(state.guided.setIndex<totalSets){guidedStartRest(parseRestRange(ex[3]),"set-rest")}else{guidedLoadPrompt()}return}
  if(ga==="save-load"){await guidedSaveLoad();return}
  if(ga==="rest-done"){guidedFinishRest();return}
@@ -793,7 +818,8 @@ document.addEventListener("click",async e=>{if(e.target.matches("[data-close]")|
 const modal=document.getElementById("modal");modal.classList.add("closing");
 setTimeout(()=>{modal.classList.remove("show","closing");renderAuth()},250)}});
 
-document.addEventListener("keydown",e=>{if(!state.guided)return;if(e.key==="Escape"){guidedClose();return}if(e.key==="Enter"&&document.activeElement?.id==="guided-load-input"){e.preventDefault();guidedSaveLoad()}});
+document.addEventListener("click",e=>{if(e.target.closest("[data-pushup-close]"))closePushupCounter()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.getElementById("pushup-counter")){closePushupCounter();return}if(!state.guided)return;if(e.key==="Escape"){guidedClose();return}if(e.key==="Enter"&&document.activeElement?.id==="guided-load-input"){e.preventDefault();guidedSaveLoad()}});
 sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=session.user;await loadProfile();await loadData();render()}else if(!state.user){renderAuth()}});
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){state.user=data.session.user;await loadProfile();await loadData();render()}else renderAuth()})();
 </script>
@@ -915,5 +941,99 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
   });
 })();
 </script>
+
+<style id="level-pushup-lowcam-v36">
+#levelPushupCounter{position:fixed;inset:0;z-index:99999;display:none;background:#050505;color:#fff;font-family:inherit}
+#levelPushupCounter.open{display:flex;align-items:center;justify-content:center}
+#levelPushupCounter .lpc-wrap{width:min(100%,520px);height:100%;display:flex;flex-direction:column;align-items:center;padding:22px 20px calc(22px + env(safe-area-inset-bottom));box-sizing:border-box}
+#levelPushupCounter .lpc-top{width:100%;display:flex;align-items:center;justify-content:space-between}
+#levelPushupCounter .lpc-close{border:0;background:rgba(255,255,255,.1);color:#fff;border-radius:999px;width:42px;height:42px;font-size:20px}
+#levelPushupCounter .lpc-timer{font-variant-numeric:tabular-nums;font-size:18px;font-weight:700;letter-spacing:.02em}
+#levelPushupCounter .lpc-video{position:relative;margin-top:18px;width:100%;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:#111;transform:scaleX(-1)}
+#levelPushupCounter video{width:100%;height:100%;object-fit:cover}
+#levelPushupCounter .lpc-body{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#levelPushupCounter .lpc-reps{font-size:clamp(110px,31vw,170px);line-height:.86;font-weight:800;letter-spacing:-.07em;color:#ff5a00;font-variant-numeric:tabular-nums}
+#levelPushupCounter .lpc-label{font-size:14px;letter-spacing:.18em;font-weight:700;color:#aaa;margin-top:12px}
+#levelPushupCounter .lpc-progress{font-size:18px;color:#ddd;margin-top:20px;font-variant-numeric:tabular-nums}
+#levelPushupCounter .lpc-status{margin-top:18px;font-size:14px;color:#9b9b9b;min-height:20px}
+#levelPushupCounter .lpc-start{border:0;border-radius:16px;padding:15px 24px;background:#ff5a00;color:#fff;font-size:16px;font-weight:800;box-shadow:0 10px 30px rgba(255,90,0,.25)}
+#levelPushupCounter .lpc-hint{font-size:12px;color:#777;margin-top:10px}
+@media(max-width:600px){#levelPushupCounter .lpc-video{margin-top:14px}#levelPushupCounter .lpc-wrap{padding-left:14px;padding-right:14px}}
+</style>
+
+<div id="levelPushupCounter" aria-hidden="true">
+  <div class="lpc-wrap">
+    <div class="lpc-top">
+      <button class="lpc-close" id="lpcClose" aria-label="Chiudi">×</button>
+      <div class="lpc-timer" id="lpcTimer">00:00</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="lpc-video">
+      <video id="lpcVideo" autoplay playsinline muted></video>
+    </div>
+    <div class="lpc-body">
+      <div class="lpc-reps" id="lpcReps">0</div>
+      <div class="lpc-label">REPS</div>
+      <div class="lpc-progress" id="lpcProgress">0 / 12</div>
+      <div class="lpc-status" id="lpcStatus">Posiziona il telefono a terra davanti a te.</div>
+      <button class="lpc-start" id="lpcStart">Avvia conteggio</button>
+      <div class="lpc-hint">Il telefono può stare basso, vicino alla posizione della testa.</div>
+    </div>
+  </div>
+</div>
+
+
+<script id="level-pushup-lowcam-v36-js">
+(function(){
+  const modal=document.getElementById('levelPushupCounter');
+  if(!modal) return;
+  const video=document.getElementById('lpcVideo'), repsEl=document.getElementById('lpcReps');
+  const progressEl=document.getElementById('lpcProgress'), timerEl=document.getElementById('lpcTimer');
+  const statusEl=document.getElementById('lpcStatus'), startBtn=document.getElementById('lpcStart');
+  const closeBtn=document.getElementById('lpcClose');
+  let stream=null, raf=0, running=false, reps=0, target=12, startedAt=0, lastState='up', cooldown=0;
+
+  function fmt(s){s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+  function update(){timerEl.textContent=fmt((Date.now()-startedAt)/1000); progressEl.textContent=reps+' / '+target}
+  function open(){
+    modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); reps=0; lastState='up'; cooldown=0; running=false;
+    repsEl.textContent='0'; progressEl.textContent='0 / '+target; timerEl.textContent='00:00';
+    statusEl.textContent='Posiziona il telefono a terra davanti a te.'; startBtn.style.display='';
+  }
+  async function start(){
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+      video.srcObject=stream; await video.play(); running=true; startedAt=Date.now(); startBtn.style.display='none';
+      statusEl.textContent='Fai un push-up completo. Il conteggio è automatico.';
+      loop();
+    }catch(e){statusEl.textContent='Consenti l’accesso alla fotocamera per usare il conteggio.'}
+  }
+  function loop(){
+    if(!running) return;
+    update();
+    // Camera/pose estimation hook. The UI and camera flow are ready; a pose model can
+    // be connected here. Until then, no false repetitions are generated.
+    raf=requestAnimationFrame(loop);
+  }
+  function close(){
+    running=false; cancelAnimationFrame(raf);
+    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+    video.srcObject=null; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+  }
+  startBtn.addEventListener('click',start); closeBtn.addEventListener('click',close);
+  window.openLevelPushupCounter=open;
+  // Make push-up exercise rows able to launch the counter without changing existing UI.
+  document.addEventListener('click',function(e){
+    const el=e.target.closest('[data-exercise-name], .exercise-row, .exercise-item, .workout-exercise');
+    if(!el) return;
+    const name=(el.dataset.exerciseName||el.textContent||'').toLowerCase();
+    if(name.includes('push up') || name.includes('push-up') || name.includes('pushup')){
+      // Only open when the click is on an explicit exercise action area, avoiding accidental opens.
+      if(e.target.closest('button, a, .exercise-menu, [data-action]')) return;
+    }
+  },true);
+})();
+</script>
+
 </body>
 </html>

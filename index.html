@@ -1,325 +1,137 @@
 <!doctype html>
 <html lang="it">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Riccardo Workout</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Workout — Riccardo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#f6f7f9}
-*{box-sizing:border-box}body{margin:0;padding:20px}.app{max-width:1000px;margin:auto}
-h1{margin:0 0 6px;font-size:28px}.sub{color:#666;margin-bottom:20px}
-.tabs,.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,select,input{font:inherit}
-button{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;background:#111;color:#fff}
-button.secondary{background:#fff;color:#111;border:1px solid #d5d7dc}button.active{background:#111;color:#fff;border:0}
-.panel{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 12px #0000000d;margin:16px 0}
-input,select{border:1px solid #d5d7dc;border-radius:9px;padding:10px;background:#fff}
-.hidden{display:none!important}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:700px}
-th,td{padding:12px 8px;text-align:left;border-bottom:1px solid #eee}th{font-size:13px;color:#666}
-.load{width:95px}.video{display:inline-block;padding:8px 10px;border-radius:9px;background:#eee;color:#111;text-decoration:none}
-.history-row,.progress-row{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;padding:10px 0}
-.chart{width:100%;min-width:650px;height:auto}.chart-wrap{overflow-x:auto}.grid{stroke:#d8dbe0}.axis{fill:#666;font-size:11px}
-.line{fill:none;stroke:#111;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}.dot{fill:#111}.empty{color:#777;padding:15px 0}
-.auth{max-width:480px;margin:40px auto}.status{padding:10px 12px;border-radius:10px;background:#eef6ff;color:#245; margin-top:10px}
-.error{background:#fff0f0;color:#900}.code{font-weight:700;letter-spacing:1px;font-size:18px}
-.modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;padding:16px;align-items:center;justify-content:center}
-.modal.open{display:flex}.modal-card{background:#fff;border-radius:16px;max-width:760px;width:100%;padding:20px;max-height:90vh;overflow:auto}
-@media(max-width:600px){body{padding:12px}h1{font-size:24px}.panel{padding:12px}}
+:root{--bg:#f5f5f7;--card:rgba(255,255,255,.72);--text:#111114;--muted:#73737c;--line:rgba(0,0,0,.08);--accent:#007aff;--shadow:0 20px 55px rgba(0,0,0,.08);--radius:28px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 20% -10%,#fff 0,#f5f5f7 35%,#eef0f4 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit}button{border:0;cursor:pointer}a{color:inherit}
+#app{min-height:100dvh}.shell{max-width:1100px;margin:auto;padding:24px 20px 120px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0 22px}.brand{display:flex;align-items:center;gap:12px}.app-icon{width:44px;height:44px;border-radius:14px;background:#111;color:#fff;display:grid;place-items:center;font-weight:800;box-shadow:0 8px 25px rgba(0,0,0,.15)}.brand small{display:block;color:var(--muted);font-size:12px;font-weight:700}.brand strong{display:block;font-size:18px;letter-spacing:-.02em}.avatar{width:42px;height:42px;border-radius:50%;background:#fff;box-shadow:0 8px 25px rgba(0,0,0,.08);display:grid;place-items:center;font-weight:800}
+.hero{padding:18px 0 24px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}.hero h1{font-size:clamp(34px,6vw,58px);line-height:.98;letter-spacing:-.055em;margin:8px 0 12px}.hero p{max-width:680px;color:var(--muted);font-size:16px;line-height:1.55;margin:0}
+.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.card{background:var(--card);border:1px solid rgba(255,255,255,.8);box-shadow:var(--shadow);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-radius:var(--radius);padding:22px}.card h2{font-size:22px;letter-spacing:-.035em;margin:0 0 16px}.card h3{margin:0;font-size:17px}.muted{color:var(--muted)}
+.day-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.day-card{background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:22px;padding:18px;min-height:145px;transition:.2s;box-shadow:0 8px 25px rgba(0,0,0,.04)}.day-card:hover{transform:translateY(-2px)}.day-number{font-size:12px;color:var(--muted);font-weight:800}.day-card h3{margin:10px 0 5px;font-size:19px}.day-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.4}.day-card button{margin-top:15px;width:100%;padding:11px 13px;border-radius:13px;background:#111;color:#fff;font-weight:750}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:rgba(255,255,255,.65);border:1px solid var(--line);border-radius:19px;padding:15px}.stat b{display:block;font-size:24px;letter-spacing:-.04em}.stat span{font-size:11px;color:var(--muted);font-weight:700}
+.nav{position:fixed;z-index:20;left:50%;bottom:18px;transform:translateX(-50%);width:min(92%,560px);padding:7px;border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.72);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.14);display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.nav button{background:transparent;color:#777;border-radius:18px;padding:10px 8px;font-size:11px;font-weight:800}.nav button.active{background:#111;color:#fff}.nav .ico{display:block;font-size:18px;margin-bottom:2px}
+.view{display:none}.view.active{display:block}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 16px}.select,.input{width:100%;border:1px solid var(--line);background:rgba(255,255,255,.8);border-radius:15px;padding:13px 14px;outline:none}.select:focus,.input:focus{border-color:rgba(0,122,255,.45);box-shadow:0 0 0 4px rgba(0,122,255,.1)}
+.workout-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:14px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:rgba(0,122,255,.1);color:#006fe6;padding:7px 10px;font-size:11px;font-weight:800}.exercise{display:grid;grid-template-columns:1fr 160px 105px;gap:12px;align-items:center;padding:15px 0;border-top:1px solid var(--line)}.exercise:first-of-type{border-top:0}.exercise .name{font-weight:750;font-size:15px}.meta{font-size:12px;color:var(--muted);margin-top:4px}.load{display:flex;align-items:center;gap:7px}.load input{min-width:0}.unit{color:var(--muted);font-size:12px;font-weight:700}.video{display:inline-flex;justify-content:center;padding:11px 12px;border-radius:13px;background:#eef0f4;text-decoration:none;font-size:12px;font-weight:800}.primary{background:#111;color:#fff;border-radius:15px;padding:13px 17px;font-weight:800}.secondary{background:#eef0f4;color:#111;border-radius:15px;padding:13px 17px;font-weight:800}
+.section-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+.history-item{display:grid;grid-template-columns:1fr auto;gap:12px;padding:15px 0;border-top:1px solid var(--line)}.history-item:first-child{border-top:0}.history-item strong{font-size:14px}.history-item small{display:block;color:var(--muted);margin-top:4px}.history-actions{display:flex;gap:7px}.icon-btn{width:38px;height:38px;border-radius:12px;background:#eef0f4}.empty{text-align:center;padding:45px 20px;color:var(--muted)}
+.chart{height:240px;position:relative;border-radius:20px;background:rgba(255,255,255,.55);border:1px solid var(--line);overflow:hidden}.chart svg{width:100%;height:100%}.chart-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:7px}
+.login{min-height:100dvh;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at 50% 0,#fff 0,#f4f4f6 48%,#e8ebf0 100%)}.login-box{width:min(440px,100%);padding:30px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);backdrop-filter:blur(30px);border-radius:34px;box-shadow:0 25px 80px rgba(0,0,0,.12)}.login-logo{width:60px;height:60px;border-radius:19px;background:#111;color:#fff;display:grid;place-items:center;font-size:24px;font-weight:900;margin-bottom:24px}.login h1{font-size:36px;letter-spacing:-.05em;margin:0 0 8px}.login p{color:var(--muted);line-height:1.5}.tabs{display:grid;grid-template-columns:1fr 1fr;background:#eef0f4;border-radius:15px;padding:4px;margin:22px 0 14px}.tabs button{background:transparent;padding:10px;border-radius:11px;font-weight:800;color:var(--muted)}.tabs button.active{background:#fff;color:#111;box-shadow:0 3px 10px rgba(0,0,0,.07)}.field{margin:11px 0}.field label{display:block;font-size:12px;font-weight:800;margin:0 0 7px;color:#555}.full{width:100%;margin-top:10px}.error{color:#ff3b30;font-size:13px;line-height:1.4;margin-top:10px}.success{color:#248a3d;font-size:13px;line-height:1.4;margin-top:10px}
+.modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(10px);z-index:50;display:none;align-items:flex-end;justify-content:center}.modal-wrap.show{display:flex}.sheet{width:min(760px,100%);background:#fff;border-radius:30px 30px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.18);max-height:88dvh;overflow:auto}.grab{width:40px;height:5px;border-radius:99px;background:#d7d7dc;margin:0 auto 18px}.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.close{width:38px;height:38px;border-radius:50%;background:#eef0f4}.toast{position:fixed;z-index:80;left:50%;bottom:100px;transform:translate(-50%,20px);background:#111;color:#fff;padding:12px 16px;border-radius:999px;font-size:13px;font-weight:750;opacity:0;pointer-events:none;transition:.25s;box-shadow:0 12px 35px rgba(0,0,0,.2)}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:760px){.shell{padding:16px 14px 112px}.grid{grid-template-columns:1fr}.day-grid{grid-template-columns:1fr 1fr}.exercise{grid-template-columns:1fr 112px}.exercise .video{grid-column:1/-1}.topbar{padding-top:8px}.card{padding:18px}.hero h1{font-size:42px}}
+@media(max-width:500px){.day-grid{grid-template-columns:1fr}.stat-row{grid-template-columns:1fr 1fr 1fr}.exercise{grid-template-columns:1fr 104px}.load{gap:4px}.load input{padding:11px 8px}.nav{bottom:10px}.brand strong{font-size:16px}}
 </style>
 </head>
 <body>
-<div id="authView" class="auth panel">
-<h1>🏋️ Riccardo Workout</h1>
-<p>Accedi per sincronizzare i progressi online e poterli vedere anche dal PC del PT.</p>
-<div class="toolbar">
-<button id="showLogin" class="active">Accedi</button><button id="showSignup" class="secondary">Registrati</button>
-</div>
-<div id="authForm">
-<label>Email<br><input id="email" type="email" style="width:100%;margin:6px 0 10px"></label>
-<label>Password<br><input id="password" type="password" style="width:100%;margin:6px 0 10px"></label>
-<button id="authSubmit" disabled>Accedi</button>
-<div id="authMsg"></div>
-</div>
-</div>
-
-<div id="appView" class="app hidden">
-<h1>🏋️ Riccardo Workout</h1><div class="sub">Progressi sincronizzati online</div>
-<div class="tabs">
-<button id="workoutTab" class="active">🏋️ Allenamento</button>
-<button id="progressTab" class="secondary">📈 Progressi</button>
-<button id="accountTab" class="secondary">👤 Account</button>
-</div>
-<section id="workoutView">
-<div class="panel"><div class="toolbar">
-<label><b>Giorno</b> <select id="daySelect"><option value="1">Giorno 1</option><option value="2">Giorno 2</option><option value="3">Giorno 3</option><option value="4">Giorno 4</option></select></label>
-<button type="button" id="editDateButton" class="secondary">✏️ Modifica dati salvati</button></div>
-<h2 id="dayTitle">Giorno 1</h2><div class="table-wrap"><table>
-<thead><tr><th>Esercizio</th><th>Serie × ripetizioni</th><th>Recupero</th><th>Carico</th><th>Video</th></tr></thead>
-<tbody id="exerciseRows"></tbody></table></div></div>
-<div class="panel"><h2>Storico</h2><div id="historyList"></div></div>
-</section>
-
-<section id="progressView" class="hidden"><div class="panel">
-<div class="toolbar"><label><b>Esercizio</b> <select id="progressExercise"></select></label></div>
-<div id="chartWrap" class="chart-wrap"></div><div id="progressTable"></div>
-</div></section>
-
-<section id="accountView" class="hidden"><div class="panel">
-<h2>Account</h2><p id="accountEmail"></p>
-<div class="status">Codice PT: <span id="clientCode" class="code">—</span><br><small>Dai questo codice al tuo PT per collegare il tuo profilo.</small></div>
-<hr style="border:0;border-top:1px solid #eee;margin:18px 0">
-<h3>Collega il PT</h3><p>Il PT può usare il suo account e inserire il tuo codice.</p>
-<label>Codice cliente del PT <input id="linkCode" placeholder="es. ABC12345"></label>
-<button id="linkTrainer" class="secondary">Collega PT</button><div id="linkMsg"></div>
-<hr style="border:0;border-top:1px solid #eee;margin:18px 0">
-<button id="logout">Esci</button>
-</div></section>
-</div>
-
-<div id="trainerView" class="app hidden">
-<h1>🏋️ Area PT</h1><div class="sub">Visualizzazione dei progressi dei clienti collegati</div>
-<div class="panel"><h2>Collega cliente</h2><input id="trainerClientCode" placeholder="Codice cliente"><button id="connectClient">Collega</button><div id="trainerMsg"></div></div>
-<div class="panel"><label><b>Cliente</b> <select id="clientSelect"></select></label></div>
-<div id="trainerProgress" class="panel"></div>
-<button id="trainerLogout">Esci</button>
-</div>
-
-<div id="editModal" class="modal"><div class="modal-card">
-<h2>✏️ Modifica dati</h2><label>Data<br><input id="editDate" type="date"></label>
-<div id="editRows" style="display:grid;grid-template-columns:1fr 100px;gap:8px;margin-top:15px"></div>
-<div class="actions" style="justify-content:flex-end;margin-top:18px"><button type="button" id="cancelEditor" class="secondary">Annulla</button><button type="button" id="saveEditor">Salva modifiche</button></div>
-</div></div>
-
+<div id="app"></div><div id="modal" class="modal-wrap"></div><div id="toast" class="toast"></div>
 <script>
-const WORKOUTS=[
-  {day:1, exercises:[
-    ["Panca inclinata 30° bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmw1Ex/"],
-    ["Military press bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmve6p/"],
-    ["Distensioni manubri panca piana","4x10","1’30’’","https://vm.tiktok.com/ZGdQm3fWo/"],
-    ["Alzate laterali singole al cavo","4x8","1’30’’","https://vm.tiktok.com/ZGdQm7xu2/"],
-    ["Chest press","4x10","1’30’’","https://vm.tiktok.com/ZGdQm7nSA/"],
-    ["Shoulder press","4x10","1’30’’","https://vm.tiktok.com/ZGdQmno3r/"],
-    ["Croci ai cavi alti","3xmax","1’30’’","https://vm.tiktok.com/ZGdQmTXda/"],
-    ["Push up","3x12","1’30’’","https://vm.tiktok.com/ZGdQms2sN/"]
-  ]},
-  {day:2, exercises:[
-    ["Lat machine","4x10","1’30’’","https://vm.tiktok.com/ZGdQmorHu/"],
-    ["Pulley barra larga","3x8","1’30’’","https://vm.tiktok.com/ZGdQm75H5/"],
-    ["Rowing machine braccio singolo","3x8","1’30’’","https://vm.tiktok.com/ZGdQm3ejY/"],
-    ["Pulley triangolo","3x10","1’30’’","https://vm.tiktok.com/ZGdQmthQd/"],
-    ["Pull up","4x4","1’30’’","https://vm.tiktok.com/ZGdQmTVXx/"],
-    ["Raise alla sbarra","3x12","1’","https://vm.tiktok.com/ZGdQmwXUq/"]
-  ]},
-  {day:3, exercises:[
-    ["Curl alternato in piedi","4x8","1’30’’","https://vm.tiktok.com/ZGdQuet9w/"],
-    ["French press seduto braccio singolo","4x8","1’","https://vm.tiktok.com/ZGdQuNFuB/"],
-    ["Curl bicipiti cavo basso corda","4x10","1’30’’","https://vm.tiktok.com/ZGdQu2UyY/"],
-    ["Push down barra dritta","4x10/12","1’30’’","https://vm.tiktok.com/ZGdQm3LN3/"],
-    ["Panca scott","4x10","1’","https://vm.tiktok.com/ZGdQu1Ryo/"],
-    ["Push down corda","4x10","1’/1’30’’","https://vm.tiktok.com/ZGdQmGL1Y/"],
-    ["Push up","3x12","1’30’’","https://vm.tiktok.com/ZGdQudL9g/"]
-  ]},
-  {day:4, exercises:[
-    ["Alzate laterali","4x10","1’30’’","https://vm.tiktok.com/ZGdQuLxBD/"],
-    ["Front lever tuck","4x4’’","1’30’’","https://vm.tiktok.com/ZGdQmshJQ/"],
-    ["Croci ai cavi bassi","3x12","1’30’’","https://vm.tiktok.com/ZGdQu2dF4/"],
-    ["Pull up","4x4","1’30’’","https://vm.tiktok.com/ZGdQmEWjF/"],
-    ["Raise alla sbarra","3x12","1’","https://vm.tiktok.com/ZGdQu2uke/"],
-    ["Crunch","3x20","1’","https://vm.tiktok.com/ZGdQmGRHk/"]
-  ]}
-];
 const SUPABASE_URL="https://asuehwoueszxyvhmycip.supabase.co";
 const SUPABASE_KEY="sb_publishable_vJ4j_kGvgLoEF-qkDOnzyQ_JbVZ2iTN";
-let sbClient=null;
-let history=[], currentDay=1, isSignup=false, profile=null, clients=[];
-
-async function loadSupabase(){
-  if(window.supabase && typeof window.supabase.createClient==="function") return window.supabase;
-  const urls=[
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
-    "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
-  ];
-  for(const url of urls){
-    try{
-      await new Promise((resolve,reject)=>{
-        const s=document.createElement("script");
-        s.src=url;
-        s.async=true;
-        s.onload=()=>resolve();
-        s.onerror=()=>reject(new Error("script load failed"));
-        document.head.appendChild(s);
-      });
-      if(window.supabase && typeof window.supabase.createClient==="function") return window.supabase;
-    }catch(e){}
-  }
-  throw new Error("Non riesco a caricare Supabase. Controlla la connessione internet oppure prova a ricaricare la pagina.");
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const DAYS={
+1:{name:"Push",subtitle:"Petto · Spalle · Tricipiti",items:[
+["d1e1","Panca inclinata 30° bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmw1Ex/"],["d1e2","Military press bilanciere","4x8","1’30’’/2’","https://vm.tiktok.com/ZGdQmve6p/"],["d1e3","Distensioni manubri panca piana","4x10","1’30’’","https://vm.tiktok.com/ZGdQm3fWo/"],["d1e4","Alzate laterali singole al cavo","4x8","1’30’’","https://vm.tiktok.com/ZGdQm7xu2/"],["d1e5","Chest press","4x10","1’30’’","https://vm.tiktok.com/ZGdQm7nSA/"],["d1e6","Shoulder press","4x10","1’30’’","https://vm.tiktok.com/ZGdQmno3r/"],["d1e7","Croci ai cavi alti","3xmax","1’30’’","https://vm.tiktok.com/ZGdQmTXda/"],["d1e8","Push up","3x12","1’30’’","https://vm.tiktok.com/ZGdQms2sN/"]]},
+2:{name:"Pull",subtitle:"Dorso · Bicipiti · Core",items:[
+["d2e1","Lat machine","4x10","1’30’’","https://vm.tiktok.com/ZGdQmorHu/"],["d2e2","Pulley barra larga","3x8","1’30’’","https://vm.tiktok.com/ZGdQm75H5/"],["d2e3","Rowing machine braccio singolo","3x8","1’30’’","https://vm.tiktok.com/ZGdQm3ejY/"],["d2e4","Pulley triangolo","3x10","1’30’’","https://vm.tiktok.com/ZGdQmthQd/"],["d2e5","Pull up","4x4","1’30’’","https://vm.tiktok.com/ZGdQmTVXx/"],["d2e6","Raise alla sbarra","3x12","1’","https://vm.tiktok.com/ZGdQmwXUq/"]]},
+3:{name:"Arms",subtitle:"Bicipiti · Tricipiti · Petto",items:[
+["d3e1","Curl alternato in piedi","4x8","1’30’’","https://vm.tiktok.com/ZGdQuet9w/"],["d3e2","French press seduto braccio singolo","4x8","1’","https://vm.tiktok.com/ZGdQuNFuB/"],["d3e3","Curl bicipiti cavo basso corda","4x10","1’30’’","https://vm.tiktok.com/ZGdQu2UyY/"],["d3e4","Push down barra dritta","4x10/12","1’30’’","https://vm.tiktok.com/ZGdQm3LN3/"],["d3e5","Panca scott","4x10","1’30’’","https://vm.tiktok.com/ZGdQu1Ryo/"],["d3e6","Push down corda","4x10","1’/1’30’’","https://vm.tiktok.com/ZGdQmGL1Y/"],["d3e7","Push up","3x12","1’30’’","https://vm.tiktok.com/ZGdQudL9g/"]]},
+4:{name:"Mixed",subtitle:"Spalle · Petto · Core · Calisthenics",items:[
+["d4e1","Alzate laterali","4x10","1’30’’","https://vm.tiktok.com/ZGdQuLxBD/"],["d4e2","Front lever tuck","4x4’’","1’30’’","https://vm.tiktok.com/ZGdQmshJQ/"],["d4e3","Croci ai cavi bassi","3x12","1’30’’","https://vm.tiktok.com/ZGdQu2dF4/"],["d4e4","Pull up","4x4","1’30’’","https://vm.tiktok.com/ZGdQmEWjF/"],["d4e5","Raise alla sbarra","3x12","1’","https://vm.tiktok.com/ZGdQu2uke/"],["d4e6","Crunch","3x20","1’","https://vm.tiktok.com/ZGdQmGRHk/"]]}
+};
+const state={user:null,profile:null,records:[],view:"home",day:1,editing:null,chartId:"d1e1",authMode:"login"};
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function dateIT(s){if(!s)return"";const [y,m,d]=s.split("-");return `${d}/${m}/${y}`}
+function today(){return new Date().toISOString().slice(0,10)}
+function firstName(){return state.profile?.full_name?.split(" ")[0]||state.user?.user_metadata?.full_name?.split(" ")[0]||state.user?.email?.split("@")[0]||"Riccardo"}
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove("show"),2300)}
+function allExercises(){return Object.entries(DAYS).flatMap(([d,x])=>x.items.map(i=>({day:+d,id:i[0],name:i[1],scheme:i[2],rest:i[3],video:i[4]})))}
+function recordLoads(r){return r?.loads&&typeof r.loads==="object"?r.loads:{}}
+function lastLoad(exId){for(const r of state.records){const x=recordLoads(r)[exId];if(x?.weight!==undefined&&x.weight!=="")return x.weight}return ""}
+function render(){
+ if(!state.user){renderAuth();return}
+ document.getElementById("app").innerHTML=`<div class="shell">
+ <div class="topbar"><div class="brand"><div class="app-icon">R</div><div><small>WORKOUT</small><strong>Riccardo</strong></div></div><button class="avatar" data-action="profile">${esc(firstName()[0]?.toUpperCase()||"R")}</button></div>
+ <section class="view ${state.view==="home"?"active":""}">${homeView()}</section>
+ <section class="view ${state.view==="workout"?"active":""}">${workoutView()}</section>
+ <section class="view ${state.view==="progress"?"active":""}">${progressView()}</section></div>
+ <nav class="nav"><button data-nav="home" class="${state.view==="home"?"active":""}"><span class="ico">⌂</span>Home</button><button data-nav="workout" class="${state.view==="workout"?"active":""}"><span class="ico">✦</span>Allenamento</button><button data-nav="progress" class="${state.view==="progress"?"active":""}"><span class="ico">⌁</span>Progressi</button></nav>`;
 }
-
-async function initSupabase(){
-  try{
-    const lib=await loadSupabase();
-    sbClient=lib.createClient(SUPABASE_URL,SUPABASE_KEY);
-    $("authSubmit").disabled=false;
-    $("showLogin").disabled=false;
-    $("showSignup").disabled=false;
-    const {data:{session}}=await sbClient.auth.getSession();
-    if(session) await boot();
-  }catch(e){
-    $("authSubmit").disabled=false;
-    msg("authMsg","Errore di collegamento: "+e.message,true);
-  }
+function homeView(){
+ const total=allExercises().length,sessions=state.records.length,last=state.records[0];
+ return `<div class="hero"><div class="eyebrow">Buongiorno</div><h1>${esc(firstName())}.</h1><p>Il tuo allenamento, i tuoi carichi e i tuoi progressi. Tutto sincronizzato nel cloud.</p></div>
+ <div class="grid"><div class="card"><div class="workout-head"><div><div class="eyebrow">PROGRAMMA</div><h2>La tua scheda</h2></div><span class="pill">14/09 → 18/10</span></div>
+ <div class="day-grid">${Object.entries(DAYS).map(([d,x])=>`<div class="day-card"><div class="day-number">GIORNO ${d}</div><h3>${x.name}</h3><p>${x.subtitle}<br>${x.items.length} esercizi</p><button data-day="${d}">Apri allenamento</button></div>`).join("")}</div></div>
+ <div class="card"><div class="eyebrow">PANORAMICA</div><h2>Attività</h2><div class="stat-row"><div class="stat"><b>${sessions}</b><span>SESSIONI</span></div><div class="stat"><b>${total}</b><span>ESERCIZI</span></div><div class="stat"><b>${state.records.length?dateIT(state.records[0].date):"—"}</b><span>ULTIMO</span></div></div>
+ <div style="margin-top:18px;padding:15px;border-radius:18px;background:rgba(255,255,255,.6)"><div class="eyebrow">ULTIMO ALLENAMENTO</div><p style="margin:7px 0 0;font-weight:750">${last?`Giorno ${last.day} · ${dateIT(last.date)}`:"Nessun allenamento registrato"}</p></div></div></div>`;
 }
-
-const $=id=>document.getElementById(id);
-const today=()=>new Date().toISOString().slice(0,10);
-const fmt=d=>{const [y,m,day]=d.split("-").map(Number);return new Date(y,m-1,day).toLocaleDateString("it-IT");};
-function msg(id,text,error=false){$(id).innerHTML=text?`<div class="status ${error?"error":""}">${text}</div>`:"";}
-
-async function getProfile(){
-  const {data:{user}}=await sbClient.auth.getUser();
-  if(!user)return null;
-  const {data,error}=await sbClient.from("profiles").select("*").eq("id",user.id).single();
-  if(error)throw error; return data;
+function workoutView(){
+ const d=DAYS[state.day];
+ return `<div class="hero" style="padding-bottom:15px"><div class="eyebrow">ALLENAMENTO</div><h1>Giorno ${state.day}.</h1><p>${d.name} · ${d.subtitle}. Inserisci il carico usato per ogni esercizio.</p></div>
+ <div class="card"><div class="toolbar"><select class="select" data-action="day-select" style="max-width:260px">${Object.entries(DAYS).map(([k,v])=>`<option value="${k}" ${+k===+state.day?"selected":""}>Giorno ${k} · ${v.name}</option>`).join("")}</select><span class="pill">3’ tra gli esercizi</span></div>
+ <div id="exercise-list">${d.items.map(i=>{const prior=lastLoad(i[0]);return `<div class="exercise"><div><div class="name">${esc(i[1])}</div><div class="meta">${i[2]} · recupero ${i[3]}${prior!==""?` · ultimo ${esc(prior)} kg`:""}</div></div><div class="load"><input class="input" inputmode="decimal" placeholder="Carico" data-load="${i[0]}" value="${state.editing?.loads?.[i[0]]?.weight??""}"><span class="unit">kg</span></div><a class="video" href="${i[4]}" target="_blank" rel="noopener">Video ↗</a></div>`}).join("")}</div>
+ <div class="section-actions"><button class="primary" data-action="save">Salva allenamento</button><button class="secondary" data-action="clear">Svuota</button></div></div>`;
 }
-async function loadHistory(){
-  const {data,error}=await sbClient.from("workout_records").select("*").order("date",{ascending:true});
-  if(error)throw error;
-  history=(data||[]).map(r=>({date:r.date,day:r.day,loads:r.loads||{},id:r.id,user_id:r.user_id}));
+function progressView(){
+ const exs=allExercises(),selected=exs.find(x=>x.id===state.chartId)||exs[0],points=[];
+ state.records.slice().reverse().forEach(r=>{const x=recordLoads(r)[selected.id];if(x?.weight!==undefined&&x.weight!=="")points.push({date:r.date,w:+x.weight})});
+ let max=Math.max(1,...points.map(p=>p.w)),min=Math.min(0,...points.map(p=>p.w)),W=900,H=260,pad=35;
+ const path=points.length?points.map((p,i)=>{const x=pad+(i/Math.max(1,points.length-1))*(W-pad*2),y=H-pad-((p.w-min)/(max-min||1))*(H-pad*2);return `${i?"L":"M"} ${x} ${y}`}).join(" "):"";
+ return `<div class="hero"><div class="eyebrow">PROGRESSI</div><h1>Vedi crescere i numeri.</h1><p>Andamento del carico registrato per esercizio, ordinato cronologicamente.</p></div>
+ <div class="card"><div class="toolbar"><select class="select" data-action="chart-select" style="max-width:500px">${Object.entries(DAYS).map(([d,v])=>`<optgroup label="Giorno ${d} · ${v.name}">${v.items.map(i=>`<option value="${i[0]}" ${i[0]===selected.id?"selected":""}>${esc(i[1])}</option>`).join("")}</optgroup>`).join("")}</select><span class="pill">${points.length} rilevazioni</span></div>
+ <div class="chart">${points.length?`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#007aff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>${points.map((p,i)=>{const x=pad+(i/Math.max(1,points.length-1))*(W-pad*2),y=H-pad-((p.w-min)/(max-min||1))*(H-pad*2);return `<circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="#007aff" stroke-width="4"><title>${dateIT(p.date)} · ${p.w} kg</title></circle>`}).join("")}</svg>`:`<div class="empty">Registra il primo carico per vedere il grafico.</div>`}</div>
+ <div class="chart-labels"><span>${points[0]?dateIT(points[0].date):""}</span><strong>${points.length?max+" kg":"—"}</strong><span>${points.at(-1)?dateIT(points.at(-1).date):""}</span></div></div>
+ <div class="card" style="margin-top:18px"><div class="workout-head"><div><div class="eyebrow">CRONOLOGIA</div><h2>Allenamenti salvati</h2></div></div>${state.records.length?state.records.map(r=>`<div class="history-item"><div><strong>Giorno ${r.day} · ${DAYS[r.day]?.name||""}</strong><small>${dateIT(r.date)} · ${Object.values(recordLoads(r)).filter(x=>x?.weight!=="").length} esercizi registrati</small></div><div class="history-actions"><button class="icon-btn" data-edit="${r.id}" title="Modifica">✎</button><button class="icon-btn" data-delete="${r.id}" title="Elimina">⌫</button></div></div>`).join(""):`<div class="empty">La cronologia è vuota.</div>`}</div>`;
 }
-async function upsertRecord(date,day,loads){
-  const {data,error}=await sbClient.from("workout_records").upsert({user_id:profile.id,date,day,loads},{onConflict:"user_id,date,day"}).select().single();
-  if(error)throw error;
-  return data;
+function renderAuth(){
+ const login=state.authMode==="login";
+ document.getElementById("app").innerHTML=`<main class="login"><section class="login-box"><div class="login-logo">R</div><div class="eyebrow">PERSONAL WORKOUT</div><h1>Il tuo allenamento.</h1><p>Un'esperienza semplice, privata e sincronizzata. Accedi per ritrovare i tuoi dati da qualsiasi dispositivo.</p><div class="tabs"><button data-auth="login" class="${login?"active":""}">Accedi</button><button data-auth="signup" class="${!login?"active":""}">Crea account</button></div>
+ <form id="auth-form"><div class="field"><label>Email</label><input class="input" type="email" name="email" required autocomplete="email" placeholder="nome@email.com"></div><div class="field"><label>Password</label><input class="input" type="password" name="password" required minlength="6" autocomplete="${login?"current-password":"new-password"}" placeholder="Almeno 6 caratteri"></div>${!login?`<div class="field"><label>Nome</label><input class="input" name="name" required placeholder="Riccardo"></div>`:""}<button class="primary full" type="submit">${login?"Accedi":"Crea account"}</button><div id="auth-msg"></div></form></section></main>`;
 }
-async function saveCurrentLoad(input){
-  const i=Number(input.dataset.index); let r=history.find(x=>x.date===today()&&x.day===currentDay);
-  const loads={...(r?.loads||{})};
-  if(input.value==="")delete loads[i]; else loads[i]=Number(input.value);
-  try{
-    if(Object.keys(loads).length){
-      const saved=await upsertRecord(today(),currentDay,loads);
-      r={...saved,loads:saved.loads||{}}; const idx=history.findIndex(x=>x.date===today()&&x.day===currentDay);
-      if(idx>=0)history[idx]=r;else history.push(r);
-    }else{
-      await sbClient.from("workout_records").delete().eq("user_id",profile.id).eq("date",today()).eq("day",currentDay);
-      history=history.filter(x=>!(x.date===today()&&x.day===currentDay));
-    }
-    renderHistory();renderProgress();
-  }catch(e){alert("Errore nel salvataggio: "+e.message);}
+async function loadData(){
+ const {data,error}=await sb.from("workout_records").select("*").eq("user_id",state.user.id).order("date",{ascending:false}).order("created_at",{ascending:false});
+ if(error){console.error(error);toast("Non riesco a caricare i dati");return}state.records=data||[];
 }
-function renderWorkout(){
-  const w=WORKOUTS.find(x=>x.day===currentDay),r=history.find(x=>x.date===today()&&x.day===currentDay);
-  $("dayTitle").textContent="Giorno "+currentDay;
-  $("exerciseRows").innerHTML=w.exercises.map((e,i)=>`<tr><td>${e[0]}</td><td>${e[1]}</td><td>${e[2]}</td><td><input class="load" type="number" min="0" step="0.5" data-index="${i}" value="${r?.loads?.[i]??""}" placeholder="kg"></td><td><a class="video" href="${e[3]}" target="_blank">Video</a></td></tr>`).join("");
+async function saveWorkout(){
+ const loads={};document.querySelectorAll("[data-load]").forEach(i=>{if(i.value.trim()!=="")loads[i.dataset.load]={weight:i.value.trim()}});
+ if(!Object.keys(loads).length){toast("Inserisci almeno un carico");return}
+ const payload={user_id:state.user.id,date:state.editing?.date||today(),day:+state.day,loads};
+ const res=state.editing?.id?await sb.from("workout_records").update(payload).eq("id",state.editing.id).eq("user_id",state.user.id).select().single():await sb.from("workout_records").insert(payload).select().single();
+ if(res.error){console.error(res.error);toast("Errore nel salvataggio");return}
+ state.editing=null;await loadData();toast("Allenamento salvato");state.view="progress";render();
 }
-function renderHistory(){
-  const dates=[...new Set(history.map(r=>r.date))].sort().reverse();
-  $("historyList").innerHTML=dates.length?dates.map(d=>`<div class="history-row"><b>${fmt(d)}</b><span>${history.filter(r=>r.date===d).map(r=>"Giorno "+r.day).join(", ")}</span><button class="small edit-history" data-date="${d}">Modifica</button></div>`).join(""):'<div class="empty">Nessun allenamento salvato.</div>';
-}
-function fillProgressSelect(){
-  const old=$("progressExercise").value;
-  $("progressExercise").innerHTML=WORKOUTS.slice().sort((a,b)=>a.day-b.day).map(w=>`<optgroup label="Giorno ${w.day}">${w.exercises.map(e=>`<option value="${w.day}|${e[0]}">${e[0]}</option>`).join("")}</optgroup>`).join("");
-  if(old&&[...$("progressExercise").options].some(o=>o.value===old))$("progressExercise").value=old;
-}
-function renderProgress(){
-  fillProgressSelect();const [dayStr,ex]=($("progressExercise").value||"|").split("|"),day=Number(dayStr);
-  const points=[];history.filter(r=>r.day===day).forEach(r=>{
-    const w=WORKOUTS.find(x=>x.day===day);w.exercises.forEach((e,i)=>{if(e[0]===ex&&r.loads?.[i]!=null)points.push({date:r.date,value:Number(r.loads[i])});});
-  });
-  points.sort((a,b)=>a.date.localeCompare(b.date));drawChart(points);$("progressTable").innerHTML=points.slice().reverse().map(p=>`<div class="progress-row"><span>${fmt(p.date)}</span><b>${p.value} kg</b><button class="edit-history" data-date="${p.date}">Modifica</button></div>`).join("")||'<div class="empty">Inserisci dei carichi per vedere i progressi.</div>';
-}
-function drawChart(points){
-  if(!points.length){$("chartWrap").innerHTML='<div class="empty">Inserisci dei carichi per vedere il grafico.</div>';return;}
-  const W=760,H=320,L=58,R=20,T=25,B=55,max=Math.ceil(Math.max(...points.map(p=>p.value),1)/5)*5||5,pw=W-L-R,ph=H-T-B;
-  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
-  for(let i=0;i<=5;i++){const y=T+ph*(1-i/5),v=max*i/5;s+=`<line class="grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text class="axis" x="${L-8}" y="${y+4}" text-anchor="end">${v} kg</text>`;}
-  const pts=points.map((p,i)=>{const x=points.length===1?L+pw/2:L+i*pw/(points.length-1),y=T+ph*(1-p.value/max);return {x,y,p};});
-  s+=`<polyline class="line" points="${pts.map(a=>a.x+','+a.y).join(' ')}"/>`;pts.forEach(a=>s+=`<circle class="dot" cx="${a.x}" cy="${a.y}" r="5"/><text class="axis" x="${a.x}" y="${H-18}" text-anchor="middle">${fmt(a.p.date)}</text>`);s+='</svg>';$("chartWrap").innerHTML=s;
-}
-function openEditor(date){$("editDate").value=date||today();fillEditor();$("editModal").classList.add("open");}
-function fillEditor(){const date=$("editDate").value,rows=history.filter(r=>r.date===date);$("editRows").innerHTML=WORKOUTS.flatMap(w=>w.exercises.map((e,i)=>{const r=rows.find(x=>x.day===w.day);return `<label>G${w.day} — ${e[0]}</label><input class="edit-load" type="number" min="0" step="0.5" data-day="${w.day}" data-index="${i}" value="${r?.loads?.[i]??""}" placeholder="kg">`;})).join("");}
-async function saveEdited(){
-  const date=$("editDate").value;if(!date)return;
-  try{
-    for(const inp of document.querySelectorAll(".edit-load")){
-      const day=Number(inp.dataset.day),i=Number(inp.dataset.index);let r=history.find(x=>x.date===date&&x.day===day);const loads={...(r?.loads||{})};
-      if(inp.value==="")delete loads[i];else loads[i]=Number(inp.value);
-      if(Object.keys(loads).length){const saved=await upsertRecord(date,day,loads);const idx=history.findIndex(x=>x.date===date&&x.day===day);if(idx>=0)history[idx]=saved;else history.push(saved);}
-      else if(r){await sbClient.from("workout_records").delete().eq("user_id",profile.id).eq("date",date).eq("day",day);history=history.filter(x=>!(x.date===date&&x.day===day));}
-    }
-    $("editModal").classList.remove("open");renderWorkout();renderHistory();renderProgress();
-  }catch(e){alert("Errore: "+e.message);}
-}
-async function signup(){
-  if(!sbClient){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
-  const email=$("email").value.trim(), password=$("password").value;
-  if(!email || password.length<6){msg("authMsg","Inserisci una email valida e una password di almeno 6 caratteri.",true);return;}
-  const {data,error}=await sbClient.auth.signUp({email,password});
-  if(error){msg("authMsg",error.message,true);return;}
-  if(data.user){
-    if(data.session) await boot();
-    else msg("authMsg","Registrazione completata. Controlla la tua email per confermare l'account, poi accedi.");
-  }
-}
-async function login(){
-  if(!sbClient){msg("authMsg","Il collegamento al database non è ancora pronto. Riprova tra un secondo.",true);return;}
-  const email=$("email").value.trim(), password=$("password").value;
-  if(!email || !password){msg("authMsg","Inserisci email e password.",true);return;}
-  const {error}=await sbClient.auth.signInWithPassword({email,password});
-  if(error){msg("authMsg",error.message,true);return;}await boot();
-}
-async function boot(){
-  try{
-    profile=await getProfile();if(!profile)throw new Error("Profilo non trovato.");
-    $("authView").classList.add("hidden");
-    if(profile.role==="trainer"){await bootTrainer();return;}
-    $("appView").classList.remove("hidden");$("accountEmail").textContent=profile.email||"Account";$("clientCode").textContent=profile.client_code||"—";
-    await loadHistory();renderWorkout();renderHistory();renderProgress();
-  }catch(e){msg("authMsg",e.message,true);}
-}
-async function bootTrainer(){
-  $("trainerView").classList.remove("hidden");await loadClients();
-}
-async function loadClients(){
-  const {data,error}=await sbClient.from("trainer_links").select("client_id,profiles!trainer_links_client_id_fkey(id,email,client_code)").eq("trainer_id",profile.id);
-  if(error){msg("trainerMsg",error.message,true);return;}clients=(data||[]).map(x=>x.profiles);$("clientSelect").innerHTML=clients.map(c=>`<option value="${c.id}">${c.email}</option>`).join("");if(clients.length)await loadTrainerProgress(clients[0].id);
-}
-async function loadTrainerProgress(id){
-  const c=clients.find(x=>x.id===id);const {data,error}=await sbClient.from("workout_records").select("*").eq("user_id",id).order("date");if(error){$("trainerProgress").textContent=error.message;return;}
-  $("trainerProgress").innerHTML=`<h2>Progressi — ${c?.email||""}</h2>`+(data||[]).map(r=>`<div class="history-row"><b>${fmt(r.date)}</b><span>Giorno ${r.day}</span><span>${Object.values(r.loads||{}).join(" kg · ")} kg</span></div>`).join("")||'<div class="empty">Nessun dato.</div>';
-}
-$("showLogin").addEventListener("click",()=>{
-  isSignup=false;
-  $("authSubmit").textContent="Accedi";
-  $("showLogin").classList.add("active");
-  $("showLogin").classList.remove("secondary");
-  $("showSignup").classList.remove("active");
-  $("showSignup").classList.add("secondary");
-  msg("authMsg","");
+async function editRecord(id){const r=state.records.find(x=>String(x.id)===String(id));if(!r)return;state.day=+r.day;state.editing={id:r.id,date:r.date,loads:recordLoads(r)};state.view="workout";render();window.scrollTo({top:0,behavior:"smooth"})}
+async function deleteRecord(id){if(!confirm("Eliminare questo allenamento?"))return;const {error}=await sb.from("workout_records").delete().eq("id",id).eq("user_id",state.user.id);if(error){toast("Errore nell’eliminazione");return}await loadData();toast("Allenamento eliminato");render()}
+function showProfile(){document.getElementById("modal").innerHTML=`<div class="sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">ACCOUNT</div><h2 style="margin:4px 0">Profilo</h2></div><button class="close" data-close>×</button></div><div style="margin:22px 0;padding:18px;border-radius:20px;background:#f4f4f6"><strong>${esc(state.profile?.full_name||firstName())}</strong><div class="muted" style="margin-top:5px">${esc(state.user.email)}</div></div><button class="primary" style="width:100%" data-logout>Esci dall’account</button></div>`;document.getElementById("modal").classList.add("show")}
+document.addEventListener("click",async e=>{
+ const nav=e.target.closest("[data-nav]");if(nav){state.view=nav.dataset.nav;state.editing=null;render();return}
+ const day=e.target.closest("[data-day]");if(day){state.day=+day.dataset.day;state.view="workout";state.editing=null;render();return}
+ const auth=e.target.closest("[data-auth]");if(auth){state.authMode=auth.dataset.auth;renderAuth();return}
+ const act=e.target.closest("[data-action]")?.dataset.action;if(act==="save"){await saveWorkout();return}if(act==="clear"){document.querySelectorAll("[data-load]").forEach(i=>i.value="");return}if(act==="profile"){showProfile();return}
+ const ed=e.target.closest("[data-edit]");if(ed){await editRecord(ed.dataset.edit);return}
+ const del=e.target.closest("[data-delete]");if(del){await deleteRecord(del.dataset.delete);return}
 });
-$("showSignup").addEventListener("click",()=>{
-  isSignup=true;
-  $("authSubmit").textContent="Registrati";
-  $("showSignup").classList.add("active");
-  $("showSignup").classList.remove("secondary");
-  $("showLogin").classList.remove("active");
-  $("showLogin").classList.add("secondary");
-  msg("authMsg","");
+document.addEventListener("change",e=>{if(e.target.matches('[data-action="day-select"]')){state.day=+e.target.value;state.editing=null;render()}if(e.target.matches('[data-action="chart-select"]')){state.chartId=e.target.value;render()}});
+document.addEventListener("submit",async e=>{
+ if(e.target.id!=="auth-form")return;e.preventDefault();const f=new FormData(e.target),email=String(f.get("email")).trim(),password=String(f.get("password")),name=String(f.get("name")||"").trim(),msg=document.getElementById("auth-msg");msg.className="";msg.textContent="";
+ const redirect=window.location.origin+window.location.pathname;
+ if(state.authMode==="login"){const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){msg.className="error";msg.textContent=error.message;return}state.user=data.user;await loadProfile();await loadData();render();return}
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:redirect}});
+ if(error){msg.className="error";msg.textContent=error.message;return}
+ if(data.session){state.user=data.user;await loadProfile();await loadData();render()}else{msg.className="success";msg.textContent="Controlla la tua email per confermare l’account. Dopo la conferma torna qui e accedi."}
 });
-$("authSubmit").addEventListener("click",()=>isSignup?signup():login());
-$("daySelect").onchange=e=>{currentDay=Number(e.target.value);renderWorkout();};
-$("workoutTab").onclick=()=>{$("workoutView").classList.remove("hidden");$("progressView").classList.add("hidden");$("accountView").classList.add("hidden");$("workoutTab").className="active";$("progressTab").className="secondary";$("accountTab").className="secondary";};
-$("progressTab").onclick=()=>{$("workoutView").classList.add("hidden");$("progressView").classList.remove("hidden");$("accountView").classList.add("hidden");$("progressTab").className="active";$("workoutTab").className="secondary";$("accountTab").className="secondary";renderProgress();};
-$("accountTab").onclick=()=>{$("workoutView").classList.add("hidden");$("progressView").classList.add("hidden");$("accountView").classList.remove("hidden");$("accountTab").className="active";$("workoutTab").className="secondary";$("progressTab").className="secondary";};
-$("progressExercise").onchange=renderProgress;
-$("exerciseRows").oninput=e=>{if(e.target.classList.contains("load"))saveCurrentLoad(e.target);};
-$("editDateButton").onclick=()=>openEditor(today());$("editDate").onchange=fillEditor;
-$("cancelEditor").onclick=()=>$("editModal").classList.remove("open");$("saveEditor").onclick=saveEdited;
-$("historyList").onclick=e=>{const b=e.target.closest(".edit-history");if(b)openEditor(b.dataset.date);};
-$("progressTable").onclick=e=>{const b=e.target.closest(".edit-history");if(b)openEditor(b.dataset.date);};
-$("linkTrainer").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("linkCode").value.trim().toUpperCase()});msg("linkMsg",error?error.message:"PT collegato.");};
-$("connectClient").onclick=async()=>{const {data,error}=await supabase.rpc("link_trainer_by_code",{p_code:$("trainerClientCode").value.trim().toUpperCase()});msg("trainerMsg",error?error.message:"Cliente collegato.");if(!error)await loadClients();};
-$("clientSelect").onchange=e=>loadTrainerProgress(e.target.value);
-$("logout").onclick=async()=>{await sbClient.auth.signOut();location.reload();};$("trainerLogout").onclick=async()=>{await sbClient.auth.signOut();location.reload();};
-msg("authMsg","Connessione al database in corso...");
-initSupabase();
+async function loadProfile(){const {data}=await sb.from("profiles").select("*").eq("id",state.user.id).maybeSingle();state.profile=data||{full_name:state.user.user_metadata?.full_name||""}}
+document.addEventListener("click",async e=>{if(e.target.matches("[data-close]")||e.target.id==="modal"){document.getElementById("modal").classList.remove("show");return}if(e.target.matches("[data-logout]")){await sb.auth.signOut();state.user=null;state.profile=null;state.records=[];document.getElementById("modal").classList.remove("show");renderAuth()}});
+sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=session.user;await loadProfile();await loadData();render()}else if(!state.user){renderAuth()}});
+(async()=>{const {data}=await sb.auth.getSession();if(data.session){state.user=data.session.user;await loadProfile();await loadData();render()}else renderAuth()})();
 </script>
-</body></html>
+</body>
+</html>

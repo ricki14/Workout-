@@ -29,6 +29,85 @@ button,input,select{font:inherit}button{border:0;cursor:pointer}a{color:inherit}
 .modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(10px);z-index:50;display:none;align-items:flex-end;justify-content:center}.modal-wrap.show{display:flex}.sheet{width:min(760px,100%);background:#fff;border-radius:30px 30px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.18);max-height:88dvh;overflow:auto}.grab{width:40px;height:5px;border-radius:99px;background:#d7d7dc;margin:0 auto 18px}.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.close{width:38px;height:38px;border-radius:50%;background:#eef0f4}.toast{position:fixed;z-index:80;left:50%;bottom:100px;transform:translate(-50%,20px);background:#111;color:#fff;padding:12px 16px;border-radius:999px;font-size:13px;font-weight:750;opacity:0;pointer-events:none;transition:.25s;box-shadow:0 12px 35px rgba(0,0,0,.2)}.toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:760px){.shell{padding:16px 14px 112px}.grid{grid-template-columns:1fr}.day-grid{grid-template-columns:1fr 1fr}.exercise{grid-template-columns:1fr 112px}.exercise .video{grid-column:1/-1}.topbar{padding-top:8px}.card{padding:18px}.hero h1{font-size:42px}}
 @media(max-width:500px){.day-grid{grid-template-columns:1fr}.stat-row{grid-template-columns:1fr 1fr 1fr}.exercise{grid-template-columns:1fr 104px}.load{gap:4px}.load input{padding:11px 8px}.nav{bottom:10px}.brand strong{font-size:16px}}
+
+/* ===== Apple-like motion system ===== */
+:root{
+  --ease-apple:cubic-bezier(.22,.61,.36,1);
+  --ease-spring:cubic-bezier(.18,.89,.32,1.28);
+}
+body{overflow-x:hidden}
+#app{min-height:100dvh}
+#app.page-enter{animation:pageIn .52s var(--ease-apple) both}
+#app.page-enter-up{animation:pageInUp .52s var(--ease-apple) both}
+#app.page-exit{animation:pageOut .22s ease both}
+@keyframes pageIn{
+  from{opacity:0;transform:translateX(18px) scale(.985);filter:blur(7px)}
+  to{opacity:1;transform:none;filter:none}
+}
+@keyframes pageInUp{
+  from{opacity:0;transform:translateY(18px) scale(.985);filter:blur(7px)}
+  to{opacity:1;transform:none;filter:none}
+}
+@keyframes pageOut{
+  from{opacity:1;transform:none}
+  to{opacity:0;transform:translateX(-12px) scale(.992);filter:blur(4px)}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:none}
+}
+@keyframes pop{
+  0%{transform:scale(.94);opacity:0}
+  70%{transform:scale(1.015)}
+  100%{transform:scale(1);opacity:1}
+}
+@keyframes pulseGlow{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,122,255,0)}
+  50%{box-shadow:0 0 0 7px rgba(0,122,255,.08)}
+}
+.hero,.card,.day-card,.stat,.history-item,.exercise{
+  animation:fadeUp .52s var(--ease-apple) both;
+}
+.grid>.card:nth-child(2){animation-delay:.06s}
+.day-card:nth-child(2),.stat:nth-child(2){animation-delay:.045s}
+.day-card:nth-child(3),.stat:nth-child(3){animation-delay:.09s}
+.day-card:nth-child(4){animation-delay:.135s}
+.exercise:nth-child(2){animation-delay:.025s}
+.exercise:nth-child(3){animation-delay:.05s}
+.exercise:nth-child(4){animation-delay:.075s}
+.exercise:nth-child(5){animation-delay:.1s}
+.exercise:nth-child(6){animation-delay:.125s}
+.exercise:nth-child(7){animation-delay:.15s}
+.exercise:nth-child(8){animation-delay:.175s}
+.day-card,.stat,.video,.primary,.secondary,.nav button,.icon-btn,.avatar,.close{
+  transition:transform .25s var(--ease-spring),box-shadow .25s ease,background-color .2s ease,opacity .2s ease;
+}
+.day-card:active,.primary:active,.secondary:active,.video:active,.nav button:active,.icon-btn:active,.avatar:active,.close:active{
+  transform:scale(.95);
+}
+.day-card:hover{box-shadow:0 14px 34px rgba(0,0,0,.08)}
+.primary:hover{box-shadow:0 10px 26px rgba(0,0,0,.16);transform:translateY(-1px)}
+.video:hover,.secondary:hover,.icon-btn:hover{transform:translateY(-1px)}
+.nav button.active{animation:pop .34s var(--ease-spring) both}
+.nav button.active .ico{animation:pop .38s var(--ease-spring) both}
+.input{transition:border-color .2s ease,box-shadow .25s ease,transform .2s ease}
+.input:focus{transform:translateY(-1px)}
+.save-pulse{animation:pulseGlow .8s ease}
+.toast.show{animation:toastIn .38s var(--ease-spring) both}
+@keyframes toastIn{
+  from{opacity:0;transform:translate(-50%,18px) scale(.94)}
+  to{opacity:1;transform:translate(-50%,0) scale(1)}
+}
+.modal-wrap{opacity:0;transition:opacity .28s ease}
+.modal-wrap.show{opacity:1}
+.sheet{transform:translateY(105%);transition:transform .48s var(--ease-apple)}
+.modal-wrap.show .sheet{transform:none}
+.modal-wrap.closing .sheet{transform:translateY(105%)}
+.modal-wrap.closing{opacity:0}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+
 </style>
 </head>
 <body>
@@ -56,9 +135,15 @@ function toast(msg){const el=document.getElementById("toast");el.textContent=msg
 function allExercises(){return Object.entries(DAYS).flatMap(([d,x])=>x.items.map(i=>({day:+d,id:i[0],name:i[1],scheme:i[2],rest:i[3],video:i[4]})))}
 function recordLoads(r){return r?.loads&&typeof r.loads==="object"?r.loads:{}}
 function lastLoad(exId){for(const r of state.records){const x=recordLoads(r)[exId];if(x?.weight!==undefined&&x.weight!=="")return x.weight}return ""}
+let __renderToken=0;
 function render(){
+ const app=document.getElementById("app");
+ const token=++__renderToken;
  if(!state.user){renderAuth();return}
- document.getElementById("app").innerHTML=`<div class="shell">
+ app.classList.remove("page-enter","page-enter-up","page-exit");
+ void app.offsetWidth;
+ app.classList.add("page-enter");
+ app.innerHTML=`<div class="shell">
  <div class="topbar"><div class="brand"><div class="app-icon">R</div><div><small>WORKOUT</small><strong>Riccardo</strong></div></div><button class="avatar" data-action="profile">${esc(firstName()[0]?.toUpperCase()||"R")}</button></div>
  <section class="view ${state.view==="home"?"active":""}">${homeView()}</section>
  <section class="view ${state.view==="workout"?"active":""}">${workoutView()}</section>
@@ -93,7 +178,11 @@ function progressView(){
 }
 function renderAuth(){
  const login=state.authMode==="login";
- document.getElementById("app").innerHTML=`<main class="login"><section class="login-box"><div class="login-logo">R</div><div class="eyebrow">PERSONAL WORKOUT</div><h1>Il tuo allenamento.</h1><p>Un'esperienza semplice, privata e sincronizzata. Accedi per ritrovare i tuoi dati da qualsiasi dispositivo.</p><div class="tabs"><button data-auth="login" class="${login?"active":""}">Accedi</button><button data-auth="signup" class="${!login?"active":""}">Crea account</button></div>
+ const app=document.getElementById("app");
+ app.classList.remove("page-enter","page-enter-up","page-exit");
+ void app.offsetWidth;
+ app.classList.add("page-enter-up");
+ app.innerHTML=`<main class="login"><section class="login-box"><div class="login-logo">R</div><div class="eyebrow">PERSONAL WORKOUT</div><h1>Il tuo allenamento.</h1><p>Un'esperienza semplice, privata e sincronizzata. Accedi per ritrovare i tuoi dati da qualsiasi dispositivo.</p><div class="tabs"><button data-auth="login" class="${login?"active":""}">Accedi</button><button data-auth="signup" class="${!login?"active":""}">Crea account</button></div>
  <form id="auth-form"><div class="field"><label>Email</label><input class="input" type="email" name="email" required autocomplete="email" placeholder="nome@email.com"></div><div class="field"><label>Password</label><input class="input" type="password" name="password" required minlength="6" autocomplete="${login?"current-password":"new-password"}" placeholder="Almeno 6 caratteri"></div>${!login?`<div class="field"><label>Nome</label><input class="input" name="name" required placeholder="Riccardo"></div>`:""}<button class="primary full" type="submit">${login?"Accedi":"Crea account"}</button><div id="auth-msg"></div></form></section></main>`;
 }
 async function loadData(){
@@ -101,25 +190,65 @@ async function loadData(){
  if(error){console.error(error);toast("Non riesco a caricare i dati");return}state.records=data||[];
 }
 async function saveWorkout(){
+ const saveBtn=document.querySelector('[data-action="save"]');
+ if(saveBtn){saveBtn.classList.add("save-pulse");saveBtn.textContent="Salvataggio…";saveBtn.disabled=true;}
  const loads={};document.querySelectorAll("[data-load]").forEach(i=>{if(i.value.trim()!=="")loads[i.dataset.load]={weight:i.value.trim()}});
- if(!Object.keys(loads).length){toast("Inserisci almeno un carico");return}
+ if(!Object.keys(loads).length){
+  if(saveBtn){saveBtn.classList.remove("save-pulse");saveBtn.textContent="Salva allenamento";saveBtn.disabled=false}
+  toast("Inserisci almeno un carico");return
+}
  const payload={user_id:state.user.id,date:state.editing?.date||today(),day:+state.day,loads};
  const res=state.editing?.id?await sb.from("workout_records").update(payload).eq("id",state.editing.id).eq("user_id",state.user.id).select().single():await sb.from("workout_records").insert(payload).select().single();
- if(res.error){console.error(res.error);toast("Errore nel salvataggio");return}
+ if(res.error){
+  console.error(res.error);
+  if(saveBtn){saveBtn.classList.remove("save-pulse");saveBtn.textContent="Salva allenamento";saveBtn.disabled=false}
+  toast("Errore nel salvataggio");return
+}
  state.editing=null;await loadData();toast("Allenamento salvato");state.view="progress";render();
 }
 async function editRecord(id){const r=state.records.find(x=>String(x.id)===String(id));if(!r)return;state.day=+r.day;state.editing={id:r.id,date:r.date,loads:recordLoads(r)};state.view="workout";render();window.scrollTo({top:0,behavior:"smooth"})}
 async function deleteRecord(id){if(!confirm("Eliminare questo allenamento?"))return;const {error}=await sb.from("workout_records").delete().eq("id",id).eq("user_id",state.user.id);if(error){toast("Errore nell’eliminazione");return}await loadData();toast("Allenamento eliminato");render()}
-function showProfile(){document.getElementById("modal").innerHTML=`<div class="sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">ACCOUNT</div><h2 style="margin:4px 0">Profilo</h2></div><button class="close" data-close>×</button></div><div style="margin:22px 0;padding:18px;border-radius:20px;background:#f4f4f6"><strong>${esc(state.profile?.full_name||firstName())}</strong><div class="muted" style="margin-top:5px">${esc(state.user.email)}</div></div><button class="primary" style="width:100%" data-logout>Esci dall’account</button></div>`;document.getElementById("modal").classList.add("show")}
+function showProfile(){
+ const modal=document.getElementById("modal");
+ modal.classList.remove("closing");
+ modal.innerHTML=`<div class="sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">ACCOUNT</div><h2 style="margin:4px 0">Profilo</h2></div><button class="close" data-close>×</button></div><div style="margin:22px 0;padding:18px;border-radius:20px;background:#f4f4f6"><strong>${esc(state.profile?.full_name||firstName())}</strong><div class="muted" style="margin-top:5px">${esc(state.user.email)}</div></div><button class="primary" style="width:100%" data-logout>Esci dall’account</button></div>`;modal.classList.add("show")}
 document.addEventListener("click",async e=>{
- const nav=e.target.closest("[data-nav]");if(nav){state.view=nav.dataset.nav;state.editing=null;render();return}
- const day=e.target.closest("[data-day]");if(day){state.day=+day.dataset.day;state.view="workout";state.editing=null;render();return}
+ const important=e.target.closest("[data-nav],[data-day],[data-action='save'],[data-edit],[data-delete],[data-profile]");
+ if(important && navigator.vibrate) navigator.vibrate(8);
+
+ const nav=e.target.closest("[data-nav]");
+ if(nav){
+   const next=nav.dataset.nav;
+   if(next!==state.view){
+     const app=document.getElementById("app");
+     app.classList.add("page-exit");
+     setTimeout(()=>{state.view=next;state.editing=null;render();},170);
+   }
+   return;
+ }
+ const day=e.target.closest("[data-day]");
+ if(day){
+   const nextDay=+day.dataset.day;
+   const app=document.getElementById("app");
+   app.classList.add("page-exit");
+   setTimeout(()=>{state.day=nextDay;state.view="workout";state.editing=null;render();},170);
+   return;
+ }
  const auth=e.target.closest("[data-auth]");if(auth){state.authMode=auth.dataset.auth;renderAuth();return}
  const act=e.target.closest("[data-action]")?.dataset.action;if(act==="save"){await saveWorkout();return}if(act==="clear"){document.querySelectorAll("[data-load]").forEach(i=>i.value="");return}if(act==="profile"){showProfile();return}
  const ed=e.target.closest("[data-edit]");if(ed){await editRecord(ed.dataset.edit);return}
  const del=e.target.closest("[data-delete]");if(del){await deleteRecord(del.dataset.delete);return}
 });
-document.addEventListener("change",e=>{if(e.target.matches('[data-action="day-select"]')){state.day=+e.target.value;state.editing=null;render()}if(e.target.matches('[data-action="chart-select"]')){state.chartId=e.target.value;render()}});
+document.addEventListener("change",e=>{
+ if(e.target.matches('[data-action="day-select"]')){
+   const app=document.getElementById("app"); app.classList.add("page-exit");
+   setTimeout(()=>{state.day=+e.target.value;state.editing=null;render();},150);
+ }
+ if(e.target.matches('[data-action="chart-select"]')){
+   const app=document.getElementById("app"); app.classList.add("page-exit");
+   setTimeout(()=>{state.chartId=e.target.value;render();},150);
+ }
+});
 document.addEventListener("submit",async e=>{
  if(e.target.id!=="auth-form")return;e.preventDefault();const f=new FormData(e.target),email=String(f.get("email")).trim(),password=String(f.get("password")),name=String(f.get("name")||"").trim(),msg=document.getElementById("auth-msg");msg.className="";msg.textContent="";
  const redirect=window.location.origin+window.location.pathname;
@@ -129,7 +258,14 @@ document.addEventListener("submit",async e=>{
  if(data.session){state.user=data.user;await loadProfile();await loadData();render()}else{msg.className="success";msg.textContent="Controlla la tua email per confermare l’account. Dopo la conferma torna qui e accedi."}
 });
 async function loadProfile(){const {data}=await sb.from("profiles").select("*").eq("id",state.user.id).maybeSingle();state.profile=data||{full_name:state.user.user_metadata?.full_name||""}}
-document.addEventListener("click",async e=>{if(e.target.matches("[data-close]")||e.target.id==="modal"){document.getElementById("modal").classList.remove("show");return}if(e.target.matches("[data-logout]")){await sb.auth.signOut();state.user=null;state.profile=null;state.records=[];document.getElementById("modal").classList.remove("show");renderAuth()}});
+document.addEventListener("click",async e=>{if(e.target.matches("[data-close]")||e.target.id==="modal"){
+ const modal=document.getElementById("modal");
+ modal.classList.add("closing");
+ setTimeout(()=>{modal.classList.remove("show","closing")},330);
+ return
+}if(e.target.matches("[data-logout]")){await sb.auth.signOut();state.user=null;state.profile=null;state.records=[];
+const modal=document.getElementById("modal");modal.classList.add("closing");
+setTimeout(()=>{modal.classList.remove("show","closing");renderAuth()},250)}});
 sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=session.user;await loadProfile();await loadData();render()}else if(!state.user){renderAuth()}});
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){state.user=data.session.user;await loadProfile();await loadData();render()}else renderAuth()})();
 </script>

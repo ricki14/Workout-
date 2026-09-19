@@ -530,7 +530,7 @@ function toast(msg){const el=document.getElementById("toast");el.textContent=msg
 function allExercises(){return Object.entries(DAYS).flatMap(([d,x])=>x.items.map(i=>({day:+d,id:i[0],name:i[1],scheme:i[2],rest:i[3],video:i[4]})))}
 function recordLoads(r){return r?.loads&&typeof r.loads==="object"?r.loads:{}}
 function entryFor(r,exId){const x=recordLoads(r)[exId];if(x==null)return null;if(typeof x==="object")return x;return {weight:String(x)}}
-function lastLoad(exId){for(const r of state.records){const x=entryFor(r,exId);if(x?.weight!==undefined&&x.weight!=="")return x.weight}return ""}
+function lastLoad(exId){for(const r of state.records){const x=entryFor(r,exId);if(x?.weight!==undefined&&x.weight!==null&&x.weight!=="")return x.weight}return ""}
 function rememberedNote(exId){for(const r of state.records){const x=entryFor(r,exId);if(x?.remember&&String(x.note||"").trim())return {note:String(x.note).trim(),date:r.date}}return null}
 function exerciseNotes(exId){const out=[];for(const r of state.records){const x=entryFor(r,exId);if(x?.note&&String(x.note).trim())out.push({note:String(x.note).trim(),remember:!!x.remember,date:r.date,day:r.day})}return out}
 
@@ -575,7 +575,7 @@ function guidedExercise(){const g=state.guided;if(!g)return null;return DAYS[g.d
 function guidedNextExercise(){const g=state.guided;if(!g)return null;return DAYS[g.day]?.items[g.exIndex+1]||null}
 function guidedClearTimer(){if(state.guided?.interval){clearInterval(state.guided.interval);state.guided.interval=null}}
 function guidedFormat(sec){sec=Math.max(0,Math.floor(sec));const m=Math.floor(sec/60),s=sec%60;return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
-function guidedStart(day){guidedClearTimer();state.guided={day:Number(day),exIndex:0,setIndex:1,phase:"ready",remaining:0,endsAt:null,interval:null,overtime:0,recordId:null,loads:{},restMin:0,restMax:0};renderGuided()}
+function guidedStart(day){guidedClearTimer();state.guided={day:Number(day),exIndex:0,setIndex:1,phase:"ready",remaining:0,endsAt:null,interval:null,overtime:0,recordId:null,loads:{},restMin:0,restMax:0,extended:false};renderGuided()}
 function guidedClose(){guidedClearTimer();state.guided=null;document.getElementById("guided-root").innerHTML=""}
 function guidedStartRest(rest,phase){
  const g=state.guided;if(!g)return;guidedClearTimer();
@@ -600,7 +600,7 @@ function updateGuidedTimer(){
  if(fill&&g.startedAt){const elapsed=(Date.now()-g.startedAt)/1000,pct=Math.min(100,(elapsed/Math.max(g.restMax,1))*100);fill.style.width=`${pct}%`;fill.classList.remove("pulse");void fill.offsetWidth;fill.classList.add("pulse");}
 }
 function guidedLoadPrompt(){const g=state.guided;if(!g)return;g.phase="load";guidedClearTimer();renderGuided();setTimeout(()=>document.querySelector("#guided-load-input")?.focus(),80)}
-async function guidedSaveLoad(){const g=state.guided,input=document.querySelector("#guided-load-input");if(!g||!input)return;const raw=input.value.trim().replace(",",".");if(raw===""){toast("Inserisci il carico usato");return}const weight=Number(raw);if(!Number.isFinite(weight)||weight<0){toast("Inserisci un carico valido");return}const ex=guidedExercise();g.loads[ex[0]]=String(weight);const loads={...g.loads};let res;if(g.recordId){res=await sb.from("workout_records").update({loads}).eq("id",g.recordId).eq("user_id",state.user.id).select().single()}else{res=await sb.from("workout_records").insert({user_id:state.user.id,date:today(),day:g.day,loads}).select().single();if(!res.error)g.recordId=res.data.id}if(res.error){console.error(res.error);toast("Errore nel salvataggio automatico");return}await loadData();const next=guidedNextExercise();if(next){guidedStartRest(180,"exercise-rest")}else{g.phase="done";renderGuided();toast("Allenamento completato")}}
+async function guidedSaveLoad(){const g=state.guided,input=document.querySelector("#guided-load-input");if(!g||!input)return;const raw=input.value.trim().replace(",",".");const ex=guidedExercise();if(!ex)return;let weight=null;if(raw!==""){weight=Number(raw);if(!Number.isFinite(weight)||weight<0){toast("Inserisci un carico valido");return}}else{const previous=lastLoad(ex[0]);const message=previous!==""?`Non hai inserito un peso. Vuoi usare l’ultimo carico salvato per ${ex[1]} (${previous} kg)?`:`Non hai inserito un peso. Vuoi continuare senza carico per ${ex[1]}?`;if(!window.confirm(message))return;weight=previous!==""?String(previous):null}g.loads[ex[0]]={weight};const loads={...g.loads};let res;if(g.recordId){res=await sb.from("workout_records").update({loads}).eq("id",g.recordId).eq("user_id",state.user.id).select().single()}else{res=await sb.from("workout_records").insert({user_id:state.user.id,date:today(),day:g.day,loads}).select().single();if(!res.error)g.recordId=res.data.id}if(res.error){console.error(res.error);toast("Non riesco a salvare questo allenamento");return}await loadData();const next=guidedNextExercise();if(next){guidedStartRest(180,"exercise-rest")}else{g.phase="done";renderGuided();toast("Allenamento completato")}}
 function guidedFinishRest(){const g=state.guided;if(!g)return;guidedClearTimer();if(g.phase==="set-rest"){g.setIndex++;g.phase="ready";g.remaining=0;g.overtime=0;g.extended=false;renderGuided();return}if(g.phase==="exercise-rest"){g.exIndex++;g.setIndex=1;g.phase="ready";g.remaining=0;g.overtime=0;g.extended=false;renderGuided()}}
 function guidedFinish(){guidedClearTimer();state.guided=null;loadData();renderGuided();render()}
 function guidedProgress(){
@@ -639,7 +639,7 @@ function renderGuided(){
  const title=inExerciseRest?(next?"Recupero completato":"Allenamento completato"):ex[1];
  const sub=inExerciseRest?(next?`Preparati per ${next[1]}`:"Hai terminato tutti gli esercizi"):`${esc(ex[2])} · recupero ${esc(ex[3])}`;
  if(g.phase==="ready"){const rn=rememberedNote(ex[0]);body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(0)}</div><small>Pronto per la serie ${g.setIndex} di ${totalSets}</small></div>${rn?`<div class="guided-memory"><div class="guided-memory-kicker">NOTA DA RICORDARE</div><div>${esc(rn.note)}</div></div>`:""}<div class="guided-actions">${/push\s*up/i.test(ex[1])?`<button class="guided-primary" data-guided="pushup-camera">▣ Conta push up con fotocamera</button>`:""}<a class="guided-secondary" style="display:grid;place-items:center;text-decoration:none" href="${ex[4]}" target="_blank" rel="noopener">Guarda il video ↗</a><button class="guided-primary" data-guided="finish-set">Ho finito la serie</button><button class="guided-secondary" data-guided="close">Esci dall’allenamento</button></div>`}
- else if(g.phase==="load"){body=`<div class="guided-timer"><div class="guided-time">✓</div><small>Tutte le ${totalSets} serie completate</small></div><div class="guided-load show"><label for="guided-load-input">Carico usato nell’esercizio</label><div style="display:flex;align-items:center;gap:8px"><input id="guided-load-input" class="input" inputmode="decimal" type="text" placeholder="es. 20" autocomplete="off"><strong>kg</strong></div><div class="guided-note">Un solo carico per l’intero esercizio. Verrà salvato automaticamente.</div></div><div class="guided-actions"><button class="guided-primary" data-guided="save-load">Salva e continua</button></div>`}
+ else if(g.phase==="load"){const previous=lastLoad(ex[0]);body=`<div class="guided-timer"><div class="guided-time">✓</div><small>Tutte le ${totalSets} serie completate</small></div><div class="guided-load show"><label for="guided-load-input">Carico usato nell’esercizio</label><div style="display:flex;align-items:center;gap:8px"><input id="guided-load-input" class="input" inputmode="decimal" type="text" placeholder="Lascia vuoto se non vuoi indicarlo" autocomplete="off"><strong>kg</strong></div>${previous!==""?`<div class="guided-note">Ultimo carico salvato: <strong>${esc(previous)} kg</strong>. Se lasci vuoto, puoi riutilizzarlo automaticamente.</div>`:`<div class="guided-note">Il carico è facoltativo. Se lasci vuoto, puoi continuare senza salvarne uno.</div>`}</div><div class="guided-actions"><button class="guided-primary" data-guided="save-load">Continua</button></div>`}
  else if(g.phase==="set-rest"||g.phase==="exercise-rest"){
    const range=`${guidedFormat(g.restMin)}${g.restMax>g.restMin?` → ${guidedFormat(g.restMax)}`:""}`;
    const label=g.phase==="set-rest"?`Recupero tra le serie · ${range}`:`Recupero tra gli esercizi · 03:00`;
@@ -1035,5 +1035,84 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
 })();
 </script>
 
+
+<style id="level-pushup-mobile-v38">
+@media (min-width:701px){.level-pushup-mobile-only{display:none!important}}
+.level-pushup-mobile-only{display:block}
+#levelPushupAsk{position:fixed;inset:0;z-index:100001;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.38);backdrop-filter:blur(8px)}
+#levelPushupAsk.open{display:flex}
+#levelPushupAsk .lp-sheet{width:min(100%,520px);background:#171717;color:#fff;border-radius:26px 26px 0 0;padding:24px 20px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.35)}
+#levelPushupAsk h3{margin:0 0 8px;font-size:22px;letter-spacing:-.03em}
+#levelPushupAsk p{margin:0 0 18px;color:#aaa;line-height:1.45;font-size:14px}
+#levelPushupAsk .lp-info{padding:14px;border-radius:16px;background:#242424;margin-bottom:16px;font-size:13px;color:#ddd}
+#levelPushupAsk .lp-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#levelPushupAsk button{border:0;border-radius:15px;padding:14px;font-weight:750;font-size:15px}
+#levelPushupAsk .lp-primary{background:#ff5a00;color:#fff}
+#levelPushupAsk .lp-secondary{background:#2a2a2a;color:#fff}
+#levelPushupAsk .lp-check{display:flex;gap:9px;align-items:center;color:#aaa;font-size:13px;margin:14px 0 18px}
+#levelPushupAsk input{accent-color:#ff5a00}
+#levelPushupFeatures{margin-top:18px}
+#levelPushupFeatures .lpf-title{font-size:13px;font-weight:800;letter-spacing:.02em;margin-bottom:9px}
+#levelPushupFeatures .lpf-card{display:flex;align-items:center;justify-content:space-between;padding:15px;border-radius:17px;background:var(--card,#fff);border:1px solid rgba(0,0,0,.08)}
+#levelPushupFeatures .lpf-card strong{display:block}
+#levelPushupFeatures .lpf-card span{display:block;color:#888;font-size:12px;margin-top:3px}
+#levelPushupFeatures .lpf-btn{border:0;border-radius:12px;background:#ff5a00;color:#fff;padding:10px 14px;font-weight:750}
+</style>
+
+<div id="levelPushupAsk" class="level-pushup-mobile-only" aria-hidden="true">
+ <div class="lp-sheet">
+  <h3>Vuoi contare i push-up?</h3>
+  <p>LEVEL può usare la fotocamera frontale per contare automaticamente le ripetizioni.</p>
+  <div class="lp-info">Appoggia il telefono a terra davanti alla testa, con lo schermo rivolto verso di te. Durante la serie potrai vedere ripetizioni e timer senza interrompere l’allenamento.</div>
+  <label class="lp-check"><input id="lpDontAsk" type="checkbox"> Non chiedermelo più</label>
+  <div class="lp-actions">
+   <button class="lp-secondary" id="lpSkip">Non ora</button>
+   <button class="lp-primary" id="lpUse">Usa conteggio</button>
+  </div>
+ </div>
+</div>
+
+<script id="level-pushup-mobile-v38-js">
+(function(){
+ const ask=document.getElementById('levelPushupAsk');
+ if(!ask)return;
+ const skip=document.getElementById('lpSkip'), use=document.getElementById('lpUse'), dont=document.getElementById('lpDontAsk');
+ const key='level_pushup_auto_prompt_v1';
+ function close(){ask.classList.remove('open');ask.setAttribute('aria-hidden','true')}
+ function openAsk(){if(localStorage.getItem(key)==='1')return false;ask.classList.add('open');ask.setAttribute('aria-hidden','false');return true}
+ skip.onclick=close;
+ use.onclick=function(){
+   if(dont.checked)localStorage.setItem(key,'1');
+   close();
+   if(window.openLevelPushupCounter) window.openLevelPushupCounter();
+ };
+ window.levelMaybeAskPushup=function(){return openAsk()};
+ window.levelOpenPushupCounter=function(){if(window.openLevelPushupCounter)window.openLevelPushupCounter()};
+ // Add a mobile-only "Funzioni aggiuntive" section to the workout page when a suitable container exists.
+ function addFeature(){
+   if(document.getElementById('levelPushupFeatures'))return;
+   const candidates=[...document.querySelectorAll('main,.page,.screen,.content,.app-content')];
+   const host=candidates.find(x=>/allenamento|workout/i.test(x.textContent||''))||candidates[0];
+   if(!host)return;
+   const box=document.createElement('section');box.id='levelPushupFeatures';box.className='level-pushup-mobile-only';
+   box.innerHTML='<div class="lpf-title">Funzioni aggiuntive</div><div class="lpf-card"><div><strong>Conta push-up</strong><span>Conta automaticamente le ripetizioni con la fotocamera.</span></div><button class="lpf-btn" type="button">Attiva</button></div>';
+   box.querySelector('button').onclick=function(){window.levelOpenPushupCounter()};
+   host.appendChild(box);
+ }
+ const mo=new MutationObserver(()=>addFeature()); mo.observe(document.body,{childList:true,subtree:true});
+ addFeature();
+ // Guided workout hook: whenever an exercise containing "push up" becomes visible, offer the prompt once.
+ function checkGuided(){
+   const txt=(document.body.innerText||'').toLowerCase();
+   if(!/push\s*-?\s*up/.test(txt))return;
+   const guided=document.querySelector('.guided-overlay.open,.guided-sheet.open,[class*="guided"].open');
+   if(guided && !window.__levelPushPromptShown){
+     window.__levelPushPromptShown=true;
+     setTimeout(()=>openAsk(),350);
+   }
+ }
+ setInterval(checkGuided,700);
+})();
+</script>
 </body>
 </html>

@@ -986,52 +986,83 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
 <script id="level-pushup-lowcam-v36-js">
 (function(){
   const modal=document.getElementById('levelPushupCounter');
-  if(!modal) return;
+  if(!modal)return;
   const video=document.getElementById('lpcVideo'), repsEl=document.getElementById('lpcReps');
   const progressEl=document.getElementById('lpcProgress'), timerEl=document.getElementById('lpcTimer');
   const statusEl=document.getElementById('lpcStatus'), startBtn=document.getElementById('lpcStart');
   const closeBtn=document.getElementById('lpcClose');
-  let stream=null, raf=0, running=false, reps=0, target=12, startedAt=0, lastState='up', cooldown=0;
+  let stream=null, raf=0, running=false, reps=0, target=12, startedAt=0;
+  let phase='up', lastShoulderY=null, smoothedY=null, downFrames=0, upFrames=0, lastRepAt=0, pose=null;
+  let poseReady=false, loadingPose=false;
 
   function fmt(s){s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
   function update(){timerEl.textContent=fmt((Date.now()-startedAt)/1000); progressEl.textContent=reps+' / '+target}
+  function reset(){reps=0;phase='up';lastShoulderY=null;smoothedY=null;downFrames=0;upFrames=0;lastRepAt=0;repsEl.textContent='0';progressEl.textContent='0 / '+target}
   function open(){
-    modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); reps=0; lastState='up'; cooldown=0; running=false;
-    repsEl.textContent='0'; progressEl.textContent='0 / '+target; timerEl.textContent='00:00';
-    statusEl.textContent='Posiziona il telefono a terra davanti a te.'; startBtn.style.display='';
+    modal.classList.add('open');modal.setAttribute('aria-hidden','false');reset();running=false;timerEl.textContent='00:00';
+    statusEl.textContent='Appoggia il telefono a terra e inquadrati dalla testa ai fianchi.';startBtn.style.display='';
+  }
+  async function loadPose(){
+    if(poseReady)return true;
+    if(loadingPose){while(loadingPose)await new Promise(r=>setTimeout(r,100));return poseReady}
+    loadingPose=true;
+    try{
+      await new Promise((resolve,reject)=>{
+        if(window.Pose){resolve();return}
+        const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js';sc.onload=resolve;sc.onerror=reject;document.head.appendChild(sc);
+      });
+      pose=new window.Pose({locateFile:(file)=>'https://cdn.jsdelivr.net/npm/@mediapipe/pose/'+file});
+      pose.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.55,minTrackingConfidence:.55});
+      pose.onResults(onPoseResults);
+      poseReady=true;loadingPose=false;return true;
+    }catch(e){loadingPose=false;statusEl.textContent='Non riesco a caricare il rilevamento del movimento. Controlla la connessione.';return false}
+  }
+  function onPoseResults(res){
+    if(!running||!res.poseLandmarks)return;
+    const L=res.poseLandmarks;
+    const ls=L[11],rs=L[12],lh=L[23],rh=L[24];
+    if(!ls||!rs||!lh||!rh)return;
+    const visible=(ls.visibility||0)+(rs.visibility||0)+(lh.visibility||0)+(rh.visibility||0);
+    if(visible<2.2){statusEl.textContent='Allontana leggermente il telefono: devo vedere spalle e bacino.';return}
+    const shoulderY=(ls.y+rs.y)/2, hipY=(lh.y+rh.y)/2;
+    // Normalise shoulder movement by the torso length. This works better with the phone low in front of the head.
+    const torso=Math.max(.08,Math.abs(hipY-shoulderY));
+    const rel=shoulderY-hipY;
+    smoothedY=smoothedY==null?rel:smoothedY*.82+rel*.18;
+    const now=performance.now();
+    // During a push-up, shoulders move down toward the phone and then back up.
+    // Hysteresis avoids double-counting from small camera/pose jitter.
+    const downThreshold=0.035, upThreshold=0.075;
+    if(phase==='up'){
+      if(smoothedY>-downThreshold){downFrames++}else downFrames=0;
+      if(downFrames>=4){phase='down';downFrames=0;statusEl.textContent='Bene — ora risali.'}
+    }else{
+      if(smoothedY<-upThreshold){upFrames++}else upFrames=0;
+      if(upFrames>=4 && now-lastRepAt>650){
+        reps++;lastRepAt=now;repsEl.textContent=String(reps);progressEl.textContent=reps+' / '+target;
+        phase='up';upFrames=0;statusEl.textContent=reps>=target?'Serie completata ✓':'Ripetizione valida ✓';
+        if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){ }
+      }
+    }
   }
   async function start(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){statusEl.textContent='La fotocamera non è disponibile in questo browser.';return}
     try{
-      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
-      video.srcObject=stream; await video.play(); running=true; startedAt=Date.now(); startBtn.style.display='none';
-      statusEl.textContent='Fai un push-up completo. Il conteggio è automatico.';
-      loop();
-    }catch(e){statusEl.textContent='Consenti l’accesso alla fotocamera per usare il conteggio.'}
+      const ok=await loadPose();if(!ok)return;
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}},audio:false});
+      video.srcObject=stream;await video.play();running=true;startedAt=Date.now();startBtn.style.display='none';
+      statusEl.textContent='Pronto. Fai una ripetizione completa: giù e poi su.';loop();
+    }catch(e){statusEl.textContent='Consenti l’accesso alla fotocamera per iniziare.'}
   }
-  function loop(){
-    if(!running) return;
+  async function loop(){
+    if(!running)return;
     update();
-    // Camera/pose estimation hook. The UI and camera flow are ready; a pose model can
-    // be connected here. Until then, no false repetitions are generated.
-    raf=requestAnimationFrame(loop);
+    if(pose&&video.readyState>=2){try{await pose.send({image:video})}catch(e){} }
+    if(running)raf=requestAnimationFrame(loop);
   }
-  function close(){
-    running=false; cancelAnimationFrame(raf);
-    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
-    video.srcObject=null; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
-  }
-  startBtn.addEventListener('click',start); closeBtn.addEventListener('click',close);
+  function close(){running=false;cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;modal.classList.remove('open');modal.setAttribute('aria-hidden','true')}
+  startBtn.addEventListener('click',start);closeBtn.addEventListener('click',close);
   window.openLevelPushupCounter=open;
-  // Make push-up exercise rows able to launch the counter without changing existing UI.
-  document.addEventListener('click',function(e){
-    const el=e.target.closest('[data-exercise-name], .exercise-row, .exercise-item, .workout-exercise');
-    if(!el) return;
-    const name=(el.dataset.exerciseName||el.textContent||'').toLowerCase();
-    if(name.includes('push up') || name.includes('push-up') || name.includes('pushup')){
-      // Only open when the click is on an explicit exercise action area, avoiding accidental opens.
-      if(e.target.closest('button, a, .exercise-menu, [data-action]')) return;
-    }
-  },true);
 })();
 </script>
 

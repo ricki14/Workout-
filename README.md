@@ -1,1 +1,1 @@
-LEVEL v28 — uniformità colore: iniziale utente/avatar in arancione fluo, coerente con il branding LEVEL.
+LEVEL v29 — rimosso il carattere letterale \\n visualizzato in cima alla pagina.

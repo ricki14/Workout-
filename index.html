@@ -224,12 +224,79 @@ function emptyPlan(){return {version:1,name:"La mia scheda",startDate:"",endDate
 function applyPlan(plan){state.plan=plan;state.planReady=!!(plan?.days?.length);DAYS=planToDays(plan);if(!Object.keys(DAYS).length){DAYS={};state.day=1;state.chartId="";return}if(!DAYS[state.day])state.day=Number(Object.keys(DAYS)[0]);if(!DAYS[state.chartId?.split("e")[0]?.replace("d","")]){const first=allExercises()[0];state.chartId=first?.id||""}}
 function builderSync(){const b=state.builder;if(!b)return;const root=document.getElementById("modal");if(!root)return; b.name=(root.querySelector('[data-bf="name"]')?.value||"").trim()||"La mia scheda";b.startDate=root.querySelector('[data-bf="start"]')?.value||"";b.endDate=root.querySelector('[data-bf="end"]')?.value||"";root.querySelectorAll('[data-bday]').forEach(card=>{const d=b.days.find(x=>String(x.id)===String(card.dataset.bday));if(!d)return;d.name=(card.querySelector('[data-bf-day="name"]')?.value||"").trim()||`Giorno ${d.id}`;d.focus=(card.querySelector('[data-bf-day="focus"]')?.value||"").trim();d.exercises=[...card.querySelectorAll('[data-bex]')].map((row,idx)=>({id:row.dataset.bex,name:(row.querySelector('[data-bf-ex="name"]')?.value||"").trim(),scheme:(row.querySelector('[data-bf-ex="scheme"]')?.value||"").trim()||"3x10",rest:(row.querySelector('[data-bf-ex="rest"]')?.value||"").trim()||"1’30’’"}));});}
 function openPlanBuilder(plan){state.builder=JSON.parse(JSON.stringify(plan||state.plan||emptyPlan()));renderPlanBuilder();}
-function renderPlanBuilder(){const b=state.builder;const modal=document.getElementById("modal");if(!b)return;modal.className="modal-wrap show";modal.innerHTML=`<div class="sheet plan-builder-sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">LA TUA SCHEDA</div><h2 style="margin:4px 0">${state.planReady?"Modifica scheda":"Crea la tua scheda"}</h2><p class="muted" style="margin:6px 0 0">Inserisci solo ciò che ti serve. I video puoi aggiungerli anche dopo.</p></div><button class="close" data-close>×</button></div><div class="builder-fields"><div class="field"><label>Nome scheda</label><input class="input" data-bf="name" value="${esc(b.name)}" placeholder="Scheda personalizzata"></div><div class="builder-two"><div class="field"><label>Dal</label><input class="input" type="date" data-bf="start" value="${esc(b.startDate||"")}"></div><div class="field"><label>Al</label><input class="input" type="date" data-bf="end" value="${esc(b.endDate||"")}"></div></div></div><div class="builder-days">${b.days.map(d=>`<section class="builder-day" data-bday="${d.id}"><div class="builder-day-head"><div><span class="eyebrow">GIORNO ${d.id}</span></div><button class="icon-btn" data-builder="remove-day" data-id="${d.id}" title="Rimuovi giorno">⌫</button></div><div class="builder-two"><input class="input" data-bf-day="name" value="${esc(d.name)}" placeholder="Nome del giorno"><input class="input" data-bf-day="focus" value="${esc(d.focus||"")}" placeholder="Cosa si allena · es. Petto · Spalle"></div><div class="builder-exercises">${d.exercises.map((e,idx)=>`<div class="builder-ex" data-bex="${esc(e.id||`d${d.id}e${idx+1}`)}"><div class="builder-ex-title"><span>${idx+1}</span><strong>Esercizio</strong><button class="icon-btn" data-builder="remove-ex" data-day="${d.id}" data-id="${esc(e.id)}">×</button></div><input class="input" data-bf-ex="name" value="${esc(e.name)}" placeholder="Nome esercizio"><div class="builder-three"><input class="input" data-bf-ex="scheme" value="${esc(e.scheme)}" placeholder="Serie × ripetizioni"><input class="input" data-bf-ex="rest" value="${esc(e.rest)}" placeholder="Recupero"></div></div>`).join("")}</div><button class="builder-add" data-builder="add-ex" data-day="${d.id}">＋ Aggiungi esercizio</button></section>`).join("")}</div><button class="builder-add builder-add-day" data-builder="add-day">＋ Aggiungi giorno</button><div class="section-actions" style="margin-top:18px"><button class="primary" data-builder="save">Salva scheda</button><button class="secondary" data-close>Annulla</button></div></div>`;}
+function renderPlanBuilder(){const b=state.builder;const modal=document.getElementById("modal");if(!b)return;modal.className="modal-wrap show";modal.innerHTML=`<div class="sheet plan-builder-sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">LA TUA SCHEDA</div><h2 style="margin:4px 0">${state.planReady?"Modifica scheda":"Crea la tua scheda"}</h2><p class="muted" style="margin:6px 0 0">Inserisci i dati della tua scheda. Potrai modificarli prima di salvarla.</p></div><button class="close" data-close>×</button></div><div class="builder-fields"><div class="field"><label>Nome scheda</label><input class="input" data-bf="name" value="${esc(b.name)}" placeholder="Scheda personalizzata"></div><div class="builder-two"><div class="field"><label>Dal</label><input class="input" type="date" data-bf="start" value="${esc(b.startDate||"")}"></div><div class="field"><label>Al</label><input class="input" type="date" data-bf="end" value="${esc(b.endDate||"")}"></div></div></div><div class="builder-days">${b.days.map(d=>`<section class="builder-day" data-bday="${d.id}"><div class="builder-day-head"><div><span class="eyebrow">GIORNO ${d.id}</span></div><button class="icon-btn" data-builder="remove-day" data-id="${d.id}" title="Rimuovi giorno">⌫</button></div><div class="builder-two"><input class="input" data-bf-day="name" value="${esc(d.name)}" placeholder="Nome del giorno"><input class="input" data-bf-day="focus" value="${esc(d.focus||"")}" placeholder="Cosa si allena · es. Petto · Spalle"></div><div class="builder-exercises">${d.exercises.map((e,idx)=>`<div class="builder-ex" data-bex="${esc(e.id||`d${d.id}e${idx+1}`)}"><div class="builder-ex-title"><span>${idx+1}</span><strong>Esercizio</strong><button class="icon-btn" data-builder="remove-ex" data-day="${d.id}" data-id="${esc(e.id)}">×</button></div><input class="input" data-bf-ex="name" value="${esc(e.name)}" placeholder="Nome esercizio"><div class="builder-three"><input class="input" data-bf-ex="scheme" value="${esc(e.scheme)}" placeholder="Serie × ripetizioni"><input class="input" data-bf-ex="rest" value="${esc(e.rest)}" placeholder="Recupero"></div></div>`).join("")}</div><button class="builder-add" data-builder="add-ex" data-day="${d.id}">＋ Aggiungi esercizio</button></section>`).join("")}</div><button class="builder-add builder-add-day" data-builder="add-day">＋ Aggiungi giorno</button><div class="section-actions" style="margin-top:18px"><button class="primary" data-builder="save">Salva scheda</button><button class="secondary" data-close>Annulla</button></div></div>`;}
 async function savePlan(){builderSync();const b=state.builder;if(!b||!b.days.length){toast("Aggiungi almeno un giorno");return}for(const d of b.days){d.exercises=d.exercises.filter(e=>e.name.trim());if(!d.exercises.length){toast(`Aggiungi almeno un esercizio al Giorno ${d.id}`);return}}const plan={...b,days:b.days.map((d,di)=>({...d,id:di+1,exercises:d.exercises.map((e,ei)=>({...e,id:`d${di+1}e${ei+1}`}))}))};const meta={...(state.user.user_metadata||{}),workout_plan:plan};const {data,error}=await sb.auth.updateUser({data:meta});if(error){console.error(error);toast("Non riesco a salvare la scheda");return}state.user=data.user;state.profile={...(state.profile||{}),full_name:data.user.user_metadata?.full_name||state.profile?.full_name||"",account_type:data.user.user_metadata?.account_type,workout_plan:plan};applyPlan(plan);state.builder=null;const modal=document.getElementById("modal");modal.className="modal-wrap";modal.innerHTML="";state.view="home";toast("Scheda salvata");render();}
 async function saveExerciseVideo(exId){const row=document.querySelector(`[data-exercise-row="${exId}"]`);const input=row?.querySelector(`[data-add-video-input="${exId}"]`);const url=(input?.value||"").trim();if(!url){toast("Incolla un link al video");return}let found=null;for(const d of state.plan.days||[]){const e=d.exercises.find(x=>x.id===exId);if(e){found=e;break}}if(!found)return;found.video=url;const meta={...(state.user.user_metadata||{}),workout_plan:state.plan};const {data,error}=await sb.auth.updateUser({data:meta});if(error){toast("Non riesco a salvare il video");return}state.user=data.user;state.profile={...(state.profile||{}),workout_plan:state.plan};applyPlan(state.plan);toast("Video salvato");render();}
 function toggleVideoEditor(exId){const row=document.querySelector(`[data-exercise-row="${exId}"]`);const ed=row?.querySelector(`[data-video-editor="${exId}"]`);if(!ed)return;const open=ed.style.display!=="none";ed.style.display=open?"none":"grid";if(!open)ed.querySelector("input")?.focus();}
-function openPdfImport(){const modal=document.getElementById("modal");modal.className="modal-wrap show";modal.innerHTML=`<div class="sheet ai-import-sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">IMPORTA CON AI</div><h2 style="margin:4px 0">Carica la scheda del PT</h2><p class="muted" style="margin:6px 0 0">Carica il PDF. L'AI leggerà esercizi, serie, ripetizioni e recuperi e preparerà una scheda da controllare prima di salvarla.</p></div><button class="close" data-close>×</button></div><label class="pdf-drop" for="plan-pdf"><div class="pdf-icon">PDF</div><strong>Scegli il PDF</strong><span>Un file alla volta · massimo 15 MB</span><input id="plan-pdf" type="file" accept="application/pdf" hidden></label><div id="pdf-import-msg" class="muted" style="margin-top:14px"></div><div class="ai-import-note"><strong>Prima del salvataggio</strong><br>Potrai controllare e modificare tutto. I video non sono obbligatori: potrai aggiungerli successivamente dalla freccia dell'esercizio.</div></div>`;}
-async function importPdf(file){const msg=document.getElementById("pdf-import-msg");if(!file)return;if(file.type!=="application/pdf"){msg.className="error";msg.textContent="Seleziona un PDF.";return}if(file.size>15*1024*1024){msg.className="error";msg.textContent="Il PDF è troppo grande. Usa un file sotto i 15 MB.";return}msg.className="muted";msg.textContent="Sto analizzando il PDF…";try{const base64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(",")[1]);r.onerror=reject;r.readAsDataURL(file)});const {data:sessionData}=await sb.auth.getSession();const accessToken=sessionData.session?.access_token;if(!accessToken)throw new Error("Sessione non disponibile");const res=await fetch(`${SUPABASE_URL}/functions/v1/parse-workout-pdf`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${accessToken}`},body:JSON.stringify({filename:file.name,fileData:base64})});const json=await res.json();if(!res.ok||!json.plan)throw new Error(json.error||"Servizio AI non disponibile");document.getElementById("modal").className="modal-wrap";document.getElementById("modal").innerHTML="";openPlanBuilder(json.plan);toast("Scheda estratta dal PDF");}catch(err){console.error(err);msg.className="error";msg.innerHTML="Non riesco a usare l'AI in questo momento.<br><small>Assicurati che la funzione AI sia configurata in Supabase.</small>";}}
+function openPdfImport(){
+ const modal=document.getElementById("modal");
+ modal.className="modal-wrap show";
+ modal.innerHTML=`<div class="sheet ai-import-sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">IMPORTA CON AI</div><h2 style="margin:4px 0">Trasforma la tua scheda</h2><p class="muted" style="margin:6px 0 0">Fai analizzare il PDF a ChatGPT o a un'altra AI, poi incolla qui il risultato. L'app compilerà automaticamente la scheda.</p></div><button class="close" data-close>×</button></div>
+ <div class="ai-import-step"><div class="eyebrow">1 · COPIA IL PROMPT</div><p class="muted" style="margin:7px 0 10px">Carica il PDF nella tua AI preferita e usa queste istruzioni.</p>
+ <textarea id="ai-prompt" class="input" readonly style="min-height:190px;resize:vertical">Analizza la scheda di allenamento nel PDF allegato.
+
+Estrai ESCLUSIVAMENTE le informazioni presenti nel documento. NON inventare o completare dati mancanti.
+
+Restituisci il risultato ESATTAMENTE in questo formato:
+
+SCHEDA
+Nome: ...
+Data inizio: ...
+Data fine: ...
+
+GIORNO 1
+Nome: ...
+Cosa si allena: ...
+
+ESERCIZIO
+Nome: ...
+Serie: ...
+Ripetizioni: ...
+Recupero: ...
+
+ESERCIZIO
+Nome: ...
+Serie: ...
+Ripetizioni: ...
+Recupero: ...
+
+Ripeti per tutti i giorni.
+
+Se un'informazione non è presente, scrivi: NON SPECIFICATO.
+Mantieni esattamente i nomi degli esercizi presenti nel PDF.
+Non aggiungere informazioni che non compaiono nel documento.</textarea>
+ <div class="section-actions" style="margin-top:10px"><button class="primary" type="button" data-copy-ai-prompt>Copia prompt</button><button class="secondary" type="button" data-open-chatgpt>Apri ChatGPT</button></div></div>
+ <div class="ai-import-step" style="margin-top:14px"><div class="eyebrow">2 · INCOLLA LA RISPOSTA</div><p class="muted" style="margin:7px 0 10px">Copia tutta la risposta dell'AI e incollala qui.</p>
+ <textarea id="ai-result" class="input" placeholder="Incolla qui la risposta dell'AI…" style="min-height:190px;resize:vertical"></textarea><div id="ai-result-msg" class="muted" style="margin-top:10px"></div>
+ <div class="section-actions" style="margin-top:10px"><button class="primary" type="button" data-parse-ai>Compila la scheda</button></div></div></div>`;
+}
+function parseExternalAIWorkout(text){
+ const lines=String(text||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const plan={name:"Scheda importata",startDate:"",endDate:"",days:[]}; let day=null,ex=null,awaitingDayName=false;
+ for(const line of lines){
+  let m=line.match(/^Nome\s*:\s*(.+)$/i);
+  if(m){if(ex){ex.name=m[1].trim();continue} if(day&&awaitingDayName){day.name=m[1].trim();awaitingDayName=false;continue} if(plan.name==="Scheda importata"){plan.name=m[1].trim();continue} if(day){day.name=m[1].trim();continue}}
+  m=line.match(/^Data\s*inizio\s*:\s*(.+)$/i);if(m){plan.startDate=m[1].trim();continue}
+  m=line.match(/^Data\s*fine\s*:\s*(.+)$/i);if(m){plan.endDate=m[1].trim();continue}
+  m=line.match(/^GIORNO\s*(\d+)\s*$/i);if(m){day={id:+m[1],name:"Giorno "+m[1],focus:"",exercises:[]};plan.days.push(day);ex=null;awaitingDayName=true;continue}
+  m=line.match(/^Cosa\s+si\s+allena\s*:\s*(.+)$/i);if(m&&day){day.focus=m[1].trim();continue}
+  if(/^ESERCIZIO$/i.test(line)){ex={id:"",name:"",scheme:"",rest:""};if(day)day.exercises.push(ex);continue}
+  m=line.match(/^Serie\s*:\s*(.+)$/i);if(m&&ex){ex.scheme=m[1].trim();continue}
+  m=line.match(/^Ripetizioni\s*:\s*(.+)$/i);if(m&&ex){ex.scheme=ex.scheme?`${ex.scheme}x${m[1].trim()}`:`${m[1].trim()}x`;continue}
+  m=line.match(/^Recupero\s*:\s*(.+)$/i);if(m&&ex){ex.rest=m[1].trim();continue}
+  m=line.match(/^(.+?)\s*[—–-]\s*(\d+)\s*[x×]\s*([0-9]+(?:\/[0-9]+)?|max)\s*(?:[—–-]\s*(?:recupero\s*)?(.+))?$/i);
+  if(m&&day){day.exercises.push({id:"",name:m[1].trim(),scheme:`${m[2]}x${m[3]}`,rest:(m[4]||"").trim()});ex=null}
+ }
+ plan.days=plan.days.map((d,di)=>({...d,id:di+1,exercises:d.exercises.filter(e=>e.name).map((e,ei)=>({...e,id:`d${di+1}e${ei+1}`}))}));
+ return plan;
+}
+function handleExternalAIImport(){
+ const msg=document.getElementById("ai-result-msg"),text=document.getElementById("ai-result")?.value.trim();
+ if(!text){msg.className="error";msg.textContent="Incolla prima la risposta dell’AI.";return}
+ const plan=parseExternalAIWorkout(text),count=plan.days.reduce((n,d)=>n+d.exercises.length,0);
+ if(!plan.days.length||!count){msg.className="error";msg.textContent="Non ho riconosciuto la scheda. Usa il prompt fornito e incolla la risposta completa dell'AI.";return}
+ state.planReady=false;document.getElementById("modal").className="modal-wrap";document.getElementById("modal").innerHTML="";openPlanBuilder(plan);toast(`Trovati ${plan.days.length} giorni e ${count} esercizi`);
+}
 function parseSets(scheme){const m=String(scheme).match(/^(\d+)x/);return m?Number(m[1]):1}
 function parseRestValue(value){
  const s=String(value).trim().replace(/\s+/g,"");
@@ -380,7 +447,10 @@ document.addEventListener("click",async e=>{
  if(noteToggle){const id=noteToggle.dataset.noteToggle;const menu=document.querySelector(`[data-note-menu="${id}"]`);const wasOpen=menu?.classList.contains("show");closeExerciseMenus();if(menu&&!wasOpen){noteToggle.classList.add("open");menu.classList.add("show");}return}
  const noteClose=e.target.closest("[data-note-close]");if(noteClose){closeExerciseMenus();return}
  const builderAction=e.target.closest("[data-builder]")?.dataset.builder;
- if(builderAction==="open"){openPlanBuilder();return}
+ if(e.target.closest("[data-copy-ai-prompt]")){const t=document.getElementById("ai-prompt");navigator.clipboard?.writeText(t.value).then(()=>toast("Prompt copiato"));return}
+if(e.target.closest("[data-open-chatgpt]")){window.open("https://chatgpt.com/","_blank","noopener,noreferrer");return}
+if(e.target.closest("[data-parse-ai]")){handleExternalAIImport();return}
+if(builderAction==="open"){openPlanBuilder();return}
  if(builderAction==="pdf"){openPdfImport();return}
  if(builderAction==="save"){await savePlan();return}
  if(builderAction==="add-day"){builderSync();const next=(state.builder.days.reduce((m,d)=>Math.max(m,Number(d.id)||0),0)+1);state.builder.days.push({id:next,name:`Giorno ${next}`,focus:"",exercises:[{id:`d${next}e1`,name:"",scheme:"3x10",rest:"1’30’’",video:""}]});renderPlanBuilder();return}
@@ -476,164 +546,5 @@ document.addEventListener("keydown",e=>{if(!state.guided)return;if(e.key==="Esca
 sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=session.user;await loadProfile();await loadData();render()}else if(!state.user){renderAuth()}});
 (async()=>{const {data}=await sb.auth.getSession();if(data.session){state.user=data.session.user;await loadProfile();await loadData();render()}else renderAuth()})();
 </script>
-
-<style id="ai-import-v22">
-.ai-import-modal{position:fixed;inset:0;z-index:320;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(10,12,18,.32);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.ai-import-modal.open{display:flex}
-.ai-import-card{width:min(680px,100%);max-height:min(90dvh,820px);overflow:auto;background:rgba(250,250,252,.96);border:1px solid rgba(255,255,255,.7);border-radius:30px;box-shadow:0 28px 80px rgba(0,0,0,.2);padding:26px}
-.ai-import-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-.ai-import-kicker{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
-.ai-import-title{font-size:28px;font-weight:800;letter-spacing:-.04em;margin:5px 0}
-.ai-import-sub{color:#6b6f78;line-height:1.45;margin:0}
-.ai-import-close{width:36px;height:36px;border:0;border-radius:50%;background:#ececf0;font-size:20px;cursor:pointer}
-.ai-import-step{margin-top:20px;padding:18px;border-radius:22px;background:#f1f1f4}
-.ai-import-step h4{margin:0 0 7px;font-size:16px}
-.ai-import-step p{margin:0;color:#6b6f78;line-height:1.45}
-.ai-import-prompt{margin-top:12px;width:100%;min-height:180px;resize:vertical;border:1px solid #dddde3;border-radius:16px;padding:13px;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;box-sizing:border-box}
-.ai-import-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.ai-import-btn{border:0;border-radius:14px;padding:11px 16px;font-weight:700;cursor:pointer}
-.ai-import-btn.primary{background:#111;color:#fff}
-.ai-import-btn.secondary{background:#e5e5e9;color:#111}
-.ai-import-input{margin-top:12px;width:100%;min-height:190px;resize:vertical;border:1px solid #d7d7de;border-radius:16px;padding:14px;font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;box-sizing:border-box;background:#fff}
-.ai-import-status{margin-top:10px;font-size:13px;color:#666b74}
-.ai-import-help{font-size:12px;color:#777b84;margin-top:8px}
-@media(max-width:600px){.ai-import-modal{padding:0;align-items:flex-end}.ai-import-card{width:100%;max-height:96dvh;border-radius:28px 28px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}.ai-import-title{font-size:24px}}
-</style>
-
-<div id="aiImportModal" class="ai-import-modal" aria-hidden="true">
-  <div class="ai-import-card" role="dialog" aria-modal="true">
-    <div class="ai-import-head">
-      <div>
-        <div class="ai-import-kicker">Importazione intelligente</div>
-        <div class="ai-import-title">Trasforma la tua scheda</div>
-        <p class="ai-import-sub">Fai leggere il PDF a ChatGPT o a un'altra AI, poi incolla qui il risultato. L'app compilerà automaticamente la scheda.</p>
-      </div>
-      <button class="ai-import-close" id="aiImportClose" aria-label="Chiudi">×</button>
-    </div>
-    <div class="ai-import-step">
-      <h4>1. Copia il prompt</h4>
-      <p>Carica il PDF nella tua AI preferita e usa queste istruzioni.</p>
-      <textarea id="aiImportPrompt" class="ai-import-prompt" readonly>Analizza la scheda di allenamento nel PDF allegato.
-
-Estrai ESCLUSIVAMENTE le informazioni presenti nel documento. NON inventare o completare dati mancanti.
-
-Restituisci il risultato in questo formato:
-
-SCHEDA
-Nome: ...
-Data inizio: ...
-Data fine: ...
-
-GIORNO 1
-Nome: ...
-Cosa si allena: ...
-
-ESERCIZIO
-Nome: ...
-Serie: ...
-Ripetizioni: ...
-Recupero: ...
-
-ESERCIZIO
-Nome: ...
-Serie: ...
-Ripetizioni: ...
-Recupero: ...
-
-Ripeti per tutti i giorni.
-
-Se un'informazione non è presente, scrivi: NON SPECIFICATO.
-Mantieni esattamente i nomi degli esercizi presenti nel PDF.
-Non aggiungere video, perché i video verranno inseriti successivamente nell'app.</textarea>
-      <div class="ai-import-actions">
-        <button class="ai-import-btn primary" id="aiCopyPrompt">Copia prompt</button>
-        <button class="ai-import-btn secondary" id="aiOpenChatGPT">Apri ChatGPT</button>
-      </div>
-      <div class="ai-import-help">Puoi usare anche un'altra AI che permette di caricare PDF.</div>
-    </div>
-    <div class="ai-import-step">
-      <h4>2. Incolla il risultato</h4>
-      <p>Copia la risposta completa dell'AI e incollala qui.</p>
-      <textarea id="aiImportText" class="ai-import-input" placeholder="Incolla qui la risposta dell'AI…"></textarea>
-      <div class="ai-import-actions">
-        <button class="ai-import-btn primary" id="aiParseText">Compila la scheda</button>
-      </div>
-      <div id="aiImportStatus" class="ai-import-status"></div>
-    </div>
-  </div>
-</div>
-
-
-<script id="ai-import-v22-js">
-(function(){
-  const modal=document.getElementById('aiImportModal');
-  if(!modal) return;
-  const close=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true')};
-  window.openAIWorkoutImport=()=>{modal.classList.add('open');modal.setAttribute('aria-hidden','false')};
-  document.getElementById('aiImportClose').onclick=close;
-  modal.addEventListener('click',e=>{if(e.target===modal)close()});
-
-  const prompt=document.getElementById('aiImportPrompt');
-  document.getElementById('aiCopyPrompt').onclick=async()=>{
-    try{await navigator.clipboard.writeText(prompt.value);document.getElementById('aiCopyPrompt').textContent='Copiato ✓';setTimeout(()=>document.getElementById('aiCopyPrompt').textContent='Copia prompt',1400)}
-    catch(e){prompt.focus();prompt.select();document.execCommand('copy');}
-  };
-  document.getElementById('aiOpenChatGPT').onclick=()=>window.open('https://chatgpt.com/','_blank','noopener');
-
-  function parse(text){
-    const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-    const workout={name:'',startDate:'',endDate:'',days:[]};
-    let day=null, ex=null;
-    for(const line of lines){
-      let m=line.match(/^Nome:\s*(.+)$/i);
-      if(m){
-        if(day && !ex) { day.name=m[1]; continue; }
-        if(ex){ ex.name=m[1]; continue; }
-        if(!workout.name) workout.name=m[1]; else if(day) day.name=m[1];
-        continue;
-      }
-      m=line.match(/^Data inizio:\s*(.+)$/i); if(m){workout.startDate=m[1];continue}
-      m=line.match(/^Data fine:\s*(.+)$/i); if(m){workout.endDate=m[1];continue}
-      m=line.match(/^GIORNO\s*(\d+)\s*$/i);
-      if(m){day={number:+m[1],name:'',focus:'',exercises:[]};workout.days.push(day);ex=null;continue}
-      m=line.match(/^Cosa si allena:\s*(.+)$/i); if(m&&day){day.focus=m[1];continue}
-      if(/^ESERCIZIO$/i.test(line)){ex={name:'',sets:'',reps:'',rest:''};if(day)day.exercises.push(ex);continue}
-      m=line.match(/^Serie:\s*(.+)$/i);if(m&&ex){ex.sets=m[1];continue}
-      m=line.match(/^Ripetizioni:\s*(.+)$/i);if(m&&ex){ex.reps=m[1];continue}
-      m=line.match(/^Recupero:\s*(.+)$/i);if(m&&ex){ex.rest=m[1];continue}
-      // Also accept compact lines like "Panca inclinata — 4 × 8 — recupero 1:30"
-      m=line.match(/^(.+?)\s*[—-]\s*(\d+)\s*[x×]\s*([^\s—-]+)(?:\s*[—-]\s*(?:recupero\s*)?(.+))?$/i);
-      if(m&&day){day.exercises.push({name:m[1].trim(),sets:m[2],reps:m[3],rest:m[4]||''});}
-    }
-    return workout;
-  }
-
-  document.getElementById('aiParseText').onclick=()=>{
-    const text=document.getElementById('aiImportText').value.trim();
-    const status=document.getElementById('aiImportStatus');
-    if(!text){status.textContent='Incolla prima la risposta dell’AI.';return}
-    const data=parse(text);
-    const count=data.days.reduce((n,d)=>n+d.exercises.length,0);
-    if(!data.days.length || !count){status.textContent='Non ho riconosciuto una scheda. Usa il prompt qui sopra e incolla la risposta completa.';return}
-    window.__aiImportedWorkout=data;
-    status.textContent=`Ho trovato ${data.days.length} giorni e ${count} esercizi. La scheda è pronta per essere controllata.`;
-    if(typeof window.openWorkoutEditor==='function') {
-      window.openWorkoutEditor(data);
-      close();
-    } else {
-      window.dispatchEvent(new CustomEvent('ai-workout-ready',{detail:data}));
-    }
-  };
-})();
-</script>
-
-
-<script id="ai-import-v22-wire">
-document.addEventListener('click',function(e){
-  const el=e.target.closest('[data-ai-import],#importPdfBtn,#aiImportBtn,.import-ai,.create-ai-workout');
-  if(el && typeof window.openAIWorkoutImport==='function'){e.preventDefault();window.openAIWorkoutImport();}
-});
-</script>
-
 </body>
 </html>

@@ -675,7 +675,7 @@ function homeView(){
 function workoutView(){
  if(!state.planReady){return `<div class="hero"><div class="eyebrow">ALLENAMENTO</div><h1>Nessuna scheda.</h1><p>Crea o importa la tua scheda per iniziare.</p></div><div class="setup-grid"><button class="setup-card" data-builder="open"><span class="setup-icon">＋</span><strong>Crea manualmente</strong><small>Costruisci la scheda in modo semplice.</small><span class="setup-arrow">→</span></button><button class="setup-card" data-builder="pdf"><span class="setup-icon">✦</span><strong>Importa PDF con AI</strong><small>Fai leggere la scheda del PT all'AI.</small><span class="setup-arrow">→</span></button></div>`}
  const d=DAYS[state.day];
- return `<div class="hero" style="padding-bottom:15px"><div class="eyebrow">ALLENAMENTO</div><h1>Giorno ${state.day}.</h1><p><strong>Cosa si allena:</strong> ${esc(d.subtitle)}</p></div><div class="guided-launch"><button class="primary" data-guided-start="${state.day}">▶ Avvia allenamento guidato</button></div><div class="card"><div class="toolbar"><select class="select" data-action="day-select" style="max-width:260px">${Object.entries(DAYS).map(([k,v])=>`<option value="${k}" ${+k===+state.day?"selected":""}>${(()=>{const base=String(v.name||"").trim();const label=base.toLowerCase()===`giorno ${k}`.toLowerCase()?`Giorno ${k}`:`Giorno ${k} · ${esc(base)}`;const focus=String(v.subtitle||"").trim();return focus?`${label} · ${esc(focus)}`:label;})()}</option>`).join("")}</select><span class="pill">3’ tra gli esercizi</span></div><div id="exercise-list">${d.items.map(i=>{const prior=lastLoad(i[0]),saved=state.editing?.loads?.[i[0]]||{},note=saved.note||"",remember=!!saved.remember;return `<div class="exercise" data-exercise-row="${i[0]}"><div><div class="name">${esc(i[1])}</div><div class="meta">${esc(i[2])} · recupero ${esc(i[3])}${prior!==""?` · ultimo ${esc(prior)} kg`:""}${rememberedNote(i[0])&&!note?` · nota salvata`:""}</div></div><div class="load"><input class="input" inputmode="decimal" placeholder="Carico" data-load="${i[0]}" value="${esc(saved.weight??"")}"><span class="unit">kg</span></div><button class="exercise-more" data-note-toggle="${i[0]}" aria-label="Altre opzioni">▸</button><div class="exercise-menu" data-note-menu="${i[0]}"><div class="exercise-menu-head"><span class="exercise-menu-title">${esc(i[1])}</span><button class="icon-btn" data-note-close="${i[0]}" type="button" aria-label="Chiudi">×</button></div>${i[4]?`<a class="exercise-video" href="${esc(i[4])}" target="_blank" rel="noopener">Guarda il video <span>↗</span></a>`:""}<textarea class="exercise-note" data-note="${i[0]}" placeholder="Scrivi una nota per questo esercizio…">${esc(note)}</textarea><button class="add-video-link" data-builder="video" data-ex="${i[0]}" type="button">${i[4]?"Modifica video":"Aggiungi video"} <span>${i[4]?"↗":"＋"}</span></button><div class="video-editor" data-video-editor="${i[0]}" style="display:none"><input class="input" data-add-video-input="${i[0]}" value="${esc(i[4]||"")}" placeholder="Incolla il link del video"><button class="primary" data-builder="save-video" data-ex="${i[0]}" type="button">Salva video</button></div><label class="remember-note"><input type="checkbox" data-remember="${i[0]}" ${remember?"checked":""}> Ricorda questa nota nei prossimi allenamenti</label><div class="note-hint">Se non la ricordi, la nota resterà comunque legata a questo allenamento e comparirà nei progressi.</div></div></div>`}).join("")}</div><div class="section-actions"><button class="primary" data-action="save">Salva allenamento</button><button class="secondary" data-action="clear">Svuota</button></div></div>`;
+ return `<div class="hero" style="padding-bottom:15px"><div class="eyebrow">ALLENAMENTO</div><h1>Giorno ${state.day}.</h1><p><strong>Cosa si allena:</strong> ${esc(d.subtitle)}</p></div><div class="guided-launch"><button class="primary" data-guided-start="${state.day}">▶ Avvia allenamento guidato</button></div><div class="card"><div class="toolbar"><select class="select" data-action="day-select" style="max-width:260px">${Object.entries(DAYS).map(([k,v])=>`<option value="${k}" ${+k===+state.day?"selected":""}>${(()=>{const base=String(v.name||"").trim();const label=base.toLowerCase()===`giorno ${k}`.toLowerCase()?`Giorno ${k}`:`Giorno ${k} · ${esc(base)}`;const focus=String(v.subtitle||"").trim();return focus?`${label} · ${esc(focus)}`:label;})()}</option>`).join("")}</select><span class="pill">3’ tra gli esercizi</span></div><div id="exercise-list">${d.items.map(i=>{const prior=lastLoad(i[0]),saved=state.editing?.loads?.[i[0]]||{},note=saved.note||"",remember=!!saved.remember;return `<div class="exercise" data-exercise-row="${i[0]}"><div><div class="name">${esc(i[1])}</div><div class="meta">${esc(i[2])} · recupero ${esc(i[3])}${prior!==""?` · ultimo ${esc(prior)} kg`:""}${rememberedNote(i[0])&&!note?` · nota salvata`:""}</div></div><div class="load"><input class="input" inputmode="decimal" placeholder="Carico" data-load="${i[0]}" value="${esc(saved.weight??"")}"><span class="unit">kg</span></div><button class="exercise-more" data-note-toggle="${i[0]}" aria-label="Altre opzioni">▸</button><div class="exercise-menu" data-note-menu="${i[0]}"><div class="exercise-menu-head"><span class="exercise-menu-title">${esc(i[1])}</span><button class="icon-btn" data-note-close="${i[0]}" type="button" aria-label="Chiudi">×</button></div>${i[4]?`<a class="exercise-video" href="${esc(i[4])}" target="_blank" rel="noopener">Guarda il video <span>↗</span></a>`:""}<textarea class="exercise-note" data-note="${i[0]}" placeholder="Scrivi una nota per questo esercizio…">${esc(note)}</textarea><button class="add-video-link" data-builder="video" data-ex="${i[0]}" type="button">${i[4]?"Modifica video":"Aggiungi video"} <span>${i[4]?"↗":"＋"}</span></button><div class="video-editor" data-video-editor="${i[0]}" style="display:none"><input class="input" data-add-video-input="${i[0]}" value="${esc(i[4]||"")}" placeholder="Incolla il link del video"><button class="primary" data-builder="save-video" data-ex="${i[0]}" type="button">Salva video</button></div><label class="remember-note"><input type="checkbox" data-remember="${i[0]}" ${remember?"checked":""}> Ricorda questa nota nei prossimi allenamenti</label><div class="note-hint">Se non la ricordi, la nota resterà comunque legata a questo allenamento e comparirà nei progressi.</div></div></div>`}).join("")}</div><div class="section-actions"><button class="primary" data-action="save">Salva allenamento</button><button class="secondary" data-action="clear">Svuota</button></div></div><section id="levelPushupFeatures" class="level-pushup-mobile-only"><div class="lpf-title">FUNZIONI AGGIUNTIVE</div><div class="lpf-card"><div><strong>Conta push-up</strong><span>Conta automaticamente le ripetizioni con la fotocamera.</span></div><button class="lpf-btn" type="button" data-pushup-feature>Attiva</button></div></section>`;
 }
 function progressView(){
  if(!state.planReady){return `<div class="hero"><div class="eyebrow">PROGRESSI</div><h1>Qui cresceranno i tuoi numeri.</h1><p>Prima crea la tua scheda. Poi troverai carichi, andamento e note raccolti in un unico posto.</p></div>`}
@@ -713,6 +713,9 @@ function showProfile(){
  modal.classList.remove("closing");
  modal.innerHTML=`<div class="sheet"><div class="grab"></div><div class="sheet-head"><div><div class="eyebrow">ACCOUNT</div><h2 style="margin:4px 0">Profilo</h2></div><button class="close" data-close>×</button></div><div style="margin:22px 0;padding:18px;border-radius:20px;background:#f4f4f6"><strong>${esc(state.profile?.full_name||firstName())}</strong><div class="muted" style="margin-top:5px">${esc(state.user.email)}</div><div style="margin-top:10px"><span class="pill">${state.profile?.account_type==="pt"?"PT":"ATLETA"}</span></div></div><button class="primary" style="width:100%" data-logout>Esci dall’account</button></div>`;modal.classList.add("show")}
 document.addEventListener("click",async e=>{
+ const pf=e.target.closest("[data-pushup-feature]");
+ if(pf){openPushupCounter();return}
+
  const gs=e.target.closest("[data-guided-start]");if(gs){guidedStart(gs.dataset.guidedStart);return}
  const ga=e.target.closest("[data-guided]")?.dataset.guided;
  if(ga==="close"||ga==="close-finish"){guidedClose();return}
@@ -1103,47 +1106,6 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
  </div>
 </div>
 
-<script id="level-pushup-mobile-v38-js">
-(function(){
- const ask=document.getElementById('levelPushupAsk');
- if(!ask)return;
- const skip=document.getElementById('lpSkip'), use=document.getElementById('lpUse'), dont=document.getElementById('lpDontAsk');
- const key='level_pushup_auto_prompt_v1';
- function close(){ask.classList.remove('open');ask.setAttribute('aria-hidden','true')}
- function openAsk(){if(localStorage.getItem(key)==='1')return false;ask.classList.add('open');ask.setAttribute('aria-hidden','false');return true}
- skip.onclick=close;
- use.onclick=function(){
-   if(dont.checked)localStorage.setItem(key,'1');
-   close();
-   if(window.openLevelPushupCounter) window.openLevelPushupCounter();
- };
- window.levelMaybeAskPushup=function(){return openAsk()};
- window.levelOpenPushupCounter=function(){if(window.openLevelPushupCounter)window.openLevelPushupCounter()};
- // Add a mobile-only "Funzioni aggiuntive" section to the workout page when a suitable container exists.
- function addFeature(){
-   if(document.getElementById('levelPushupFeatures'))return;
-   const candidates=[...document.querySelectorAll('main,.page,.screen,.content,.app-content')];
-   const host=candidates.find(x=>/allenamento|workout/i.test(x.textContent||''))||candidates[0];
-   if(!host)return;
-   const box=document.createElement('section');box.id='levelPushupFeatures';box.className='level-pushup-mobile-only';
-   box.innerHTML='<div class="lpf-title">Funzioni aggiuntive</div><div class="lpf-card"><div><strong>Conta push-up</strong><span>Conta automaticamente le ripetizioni con la fotocamera.</span></div><button class="lpf-btn" type="button">Attiva</button></div>';
-   box.querySelector('button').onclick=function(){window.levelOpenPushupCounter()};
-   host.appendChild(box);
- }
- const mo=new MutationObserver(()=>addFeature()); mo.observe(document.body,{childList:true,subtree:true});
- addFeature();
- // Guided workout hook: whenever an exercise containing "push up" becomes visible, offer the prompt once.
- function checkGuided(){
-   const txt=(document.body.innerText||'').toLowerCase();
-   if(!/push\s*-?\s*up/.test(txt))return;
-   const guided=document.querySelector('.guided-overlay.open,.guided-sheet.open,[class*="guided"].open');
-   if(guided && !window.__levelPushPromptShown){
-     window.__levelPushPromptShown=true;
-     setTimeout(()=>openAsk(),350);
-   }
- }
- setInterval(checkGuided,700);
-})();
-</script>
+
 </body>
 </html>

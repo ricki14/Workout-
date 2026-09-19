@@ -203,6 +203,31 @@ img,video,iframe,svg{max-width:100%}
 @media(max-width:600px){.level-wordmark{font-size:23px;letter-spacing:.15em}}
 </style>
 
+
+<style id="level-palette-v30">
+:root{
+  --accent:#FF5A00 !important;
+  --accent-strong:#FF5A00 !important;
+  --accent-soft:rgba(255,90,0,.12) !important;
+  --accent-border:rgba(255,90,0,.28) !important;
+}
+a,.link,.accent,.text-accent,.active-accent{color:var(--accent) !important;}
+button.primary,.btn-primary,.primary-action{background:var(--accent) !important;border-color:var(--accent) !important;}
+.progress-fill,.progress-bar .fill,.active-indicator,.tab.active::after{background:var(--accent) !important;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent) !important;box-shadow:0 0 0 3px rgba(255,90,0,.12) !important;}
+input[type="checkbox"]:checked,input[type="radio"]:checked{accent-color:var(--accent) !important;}
+</style>
+
+
+<style id="level-touch-v30">
+@media (max-width:760px){
+  body{overscroll-behavior-x:none;}
+  button,a,[role="button"],.nav-item{touch-action:manipulation;}
+  .modal,.sheet,.bottom-sheet,.guided-overlay,.ai-import-modal{touch-action:pan-y;}
+  input,textarea,select{touch-action:auto;}
+}
+</style>
+
 </head>
 <body>
 <div id="app"></div><div id="nav-root"></div><div id="modal" class="modal-wrap"></div><div id="guided-root"></div><div id="toast" class="toast"></div>
@@ -505,5 +530,89 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
 <script id="gestures-v24-js">(function(){  let active=null;  const THRESHOLD=72, EDGE=28;  const isInteractive=(el)=>!!el.closest('input,textarea,select,button,a,[contenteditable="true"]');  const reset=(el)=>{if(!el)return;el.classList.remove('gesture-dragging','gesture-settling');el.style.transform='';};  const closeModal=()=>{    const modal=document.getElementById('modal');    if(modal?.classList.contains('show')){      const c=modal.querySelector('[data-close]');      if(c)c.click(); else modal.classList.remove('show');      return true;    }    return false;  };  const closeGuided=()=>{    const root=document.getElementById('guided-root');    if(root?.querySelector('.guided-overlay.show')){      const c=root.querySelector('[data-guided="close"]');      if(c)c.click();      return true;    }    return false;  };  document.addEventListener('touchstart',e=>{    if(e.touches.length!==1)return;    const t=e.touches[0], target=e.target;    const sheet=target.closest('.sheet,.guided-sheet');    const nav=document.querySelector('.nav');    if(nav && nav.contains(target)) return;    active={x:t.clientX,y:t.clientY,lastX:t.clientX,lastY:t.clientY,target,sheet,drag:false,edge:t.clientX<=EDGE};  },{passive:true});  document.addEventListener('touchmove',e=>{    if(!active||e.touches.length!==1)return;    const t=e.touches[0]; active.lastX=t.clientX; active.lastY=t.clientY;    const dx=t.clientX-active.x, dy=t.clientY-active.y;    if(Math.abs(dx)+Math.abs(dy)<8)return;    if(isInteractive(active.target))return;    // Bottom sheets: follow a downward drag like a native iOS sheet.    if(active.sheet && dy>8 && Math.abs(dy)>Math.abs(dx)*1.15){      if(active.sheet.scrollTop>0)return;      active.drag=true;      active.sheet.classList.add('gesture-dragging');      active.sheet.style.transform=`translateY(${Math.min(dy,260)}px)`;      e.preventDefault();    }  },{passive:false});  document.addEventListener('touchend',()=>{    if(!active)return;    const a=active, dx=a.lastX-a.x, dy=a.lastY-a.y; active=null;    if(a.sheet && a.drag){      if(dy>THRESHOLD){        a.sheet.classList.add('gesture-settling');        a.sheet.style.transform='translateY(110%)';        setTimeout(()=>{          if(a.sheet.classList.contains('guided-sheet')) closeGuided(); else closeModal();          reset(a.sheet);        },280);      }else{        a.sheet.classList.add('gesture-settling');        a.sheet.style.transform='translateY(0)';        setTimeout(()=>reset(a.sheet),290);      }      return;    }    // iOS-like edge swipe back. Only starts very close to the left edge.    if(a.edge && dx>THRESHOLD && Math.abs(dx)>Math.abs(dy)*1.25){      if(closeModal()||closeGuided())return;      if(typeof state!=='undefined' && state.view!=='home'){        const app=document.getElementById('app');        app?.classList.add('page-exit');        setTimeout(()=>{          if(state.view==='progress')state.view='workout';          else if(state.view==='workout')state.view='home';          state.editing=null; render();        },120);      }    }  },{passive:true});  // Light horizontal swipe between main sections, away from controls.  document.addEventListener('touchend',function sectionSwipe(e){    // handled above; kept intentionally separate for readability/future tuning  },{passive:true});})();</script><style id="level-brand-v25">
 .level-mark{width:100%;height:100%;display:block}.level-app-icon{display:grid;place-items:center;color:#111}.level-app-icon .level-mark{width:25px;height:25px}.level-login-logo{display:grid;place-items:center;color:#111;font-size:0}.level-login-logo .level-mark{width:64px;height:64px}.brand strong{letter-spacing:-.02em}.pill{background:rgba(255,90,0,.1)!important;color:#ff5a00!important}.chart svg path{stroke:#ff5a00!important}.chart svg circle{stroke:#ff5a00!important}
 </style>
+
+<script id="level-gestures-v30">
+(function(){
+  let sx=0, sy=0, active=false, edge=false, targetSheet=null, sheetStartY=0, sheetMoved=false;
+
+  const interactive = el => el && el.closest('input,textarea,select,button,a,[contenteditable="true"]');
+  const sheets = () => [...document.querySelectorAll(
+    '.modal.open,.modal.show,.sheet.open,.bottom-sheet.open,.guided-overlay.open,.ai-import-modal.open,[role="dialog"]'
+  )].filter(el => {
+    const s=getComputedStyle(el);
+    return s.display!=='none' && s.visibility!=='hidden';
+  });
+
+  document.addEventListener('pointerdown', e=>{
+    if(e.pointerType!=='touch') return;
+    sx=e.clientX; sy=e.clientY; active=true; sheetMoved=false; targetSheet=null;
+    edge=sx<28;
+    const openSheets=sheets();
+    if(openSheets.length){
+      const top=openSheets[openSheets.length-1];
+      const panel=top.querySelector('.modal-card,.sheet-card,.bottom-sheet,.guided-sheet,.ai-import-card,[role="document"]')||top.firstElementChild;
+      if(panel && panel.contains(e.target) && !interactive(e.target)){
+        targetSheet={overlay:top,panel};
+        sheetStartY=parseFloat(panel.dataset.gestureY||'0')||0;
+      }
+    }
+  },{passive:true});
+
+  document.addEventListener('pointermove', e=>{
+    if(!active || e.pointerType!=='touch') return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    if(targetSheet && dy>8 && Math.abs(dy)>Math.abs(dx)*1.15){
+      sheetMoved=true;
+      const y=Math.max(0,Math.min(dy,window.innerHeight*.65));
+      targetSheet.panel.style.transform=`translateY(${y}px)`;
+      targetSheet.panel.dataset.gestureY=String(y);
+      e.preventDefault();
+      return;
+    }
+  },{passive:false});
+
+  document.addEventListener('pointerup', e=>{
+    if(!active || e.pointerType!=='touch') return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    active=false;
+
+    if(targetSheet && sheetMoved){
+      const threshold=Math.min(180,window.innerHeight*.22);
+      if(dy>threshold){
+        if(targetSheet.overlay.querySelector('[data-close]')) targetSheet.overlay.querySelector('[data-close]').click();
+        else targetSheet.overlay.classList.remove('open','show');
+        targetSheet.panel.style.transform='';
+        targetSheet.panel.dataset.gestureY='0';
+        navigator.vibrate?.(10);
+      }else{
+        targetSheet.panel.style.transition='transform .28s cubic-bezier(.2,.8,.2,1)';
+        targetSheet.panel.style.transform='translateY(0)';
+        targetSheet.panel.dataset.gestureY='0';
+        setTimeout(()=>targetSheet.panel.style.transition='',300);
+      }
+      return;
+    }
+
+    if(edge && dx>70 && Math.abs(dx)>Math.abs(dy)*1.25){
+      const close=document.querySelector('.modal.open [data-close],.modal.show [data-close],.sheet.open [data-close],.bottom-sheet.open [data-close],.guided-overlay.open [data-close],.ai-import-modal.open [data-close]');
+      if(close){close.click(); navigator.vibrate?.(8); return;}
+      if(typeof window.goBack==='function'){window.goBack();navigator.vibrate?.(8);}
+      else if(history.length>1){history.back();navigator.vibrate?.(8);}
+    }
+  },{passive:true});
+
+  // Add restrained haptic feedback to primary interactions.
+  document.addEventListener('click', e=>{
+    const el=e.target.closest('button,[role="button"],.nav-item,.card-action');
+    if(!el) return;
+    if(el.disabled) return;
+    if(navigator.vibrate){
+      const strong=el.matches('.primary,.btn-primary,.primary-action,.nav-item.active');
+      navigator.vibrate(strong?10:6);
+    }
+  },{passive:true});
+})();
+</script>
+
 </body>
 </html>

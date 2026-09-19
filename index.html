@@ -250,6 +250,220 @@ button.avatar:active {
 }
 </style>
 
+
+<style id="level-premium-v32">
+/* =========================================================
+   LEVEL — premium interaction layer
+   ========================================================= */
+:root{
+  --accent:#FF5A00 !important;
+  --accent-2:#FF6A1A !important;
+  --ink:#111111;
+  --muted:#737780;
+  --surface:#ffffff;
+  --surface-2:#f5f5f7;
+  --line:rgba(17,17,17,.08);
+  --shadow-soft:0 10px 35px rgba(17,17,17,.07);
+  --shadow-card:0 16px 45px rgba(17,17,17,.08);
+}
+
+html{scroll-behavior:smooth;}
+body{
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  background:
+    radial-gradient(circle at 50% -10%,rgba(255,90,0,.045),transparent 32%),
+    #f6f6f8 !important;
+}
+
+/* App chrome */
+.topbar{
+  backdrop-filter:saturate(180%) blur(22px) !important;
+  -webkit-backdrop-filter:saturate(180%) blur(22px) !important;
+  background:rgba(246,246,248,.78) !important;
+  border-bottom:1px solid rgba(17,17,17,.055) !important;
+}
+.nav{
+  background:rgba(255,255,255,.86) !important;
+  backdrop-filter:saturate(180%) blur(24px) !important;
+  -webkit-backdrop-filter:saturate(180%) blur(24px) !important;
+  border:1px solid rgba(17,17,17,.08) !important;
+  box-shadow:0 14px 40px rgba(17,17,17,.12),0 2px 10px rgba(17,17,17,.04) !important;
+}
+.nav .active,
+.nav-item.active{
+  color:var(--accent) !important;
+}
+
+/* Cards */
+.card,.hero,.setup-card,.stat,.workout-card,.history-item{
+  transition:
+    transform .28s cubic-bezier(.2,.8,.2,1),
+    box-shadow .28s cubic-bezier(.2,.8,.2,1),
+    border-color .28s ease,
+    background .28s ease !important;
+}
+.card:hover,.setup-card:hover,.workout-card:hover,.history-item:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-card) !important;
+  border-color:rgba(255,90,0,.14) !important;
+}
+.card:active,.setup-card:active,.workout-card:active{
+  transform:scale(.992);
+}
+
+/* Primary actions */
+button.primary,.primary,.guided-primary,.builder-add{
+  box-shadow:0 9px 22px rgba(255,90,0,.20) !important;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease !important;
+}
+button.primary:hover,.primary:hover,.guided-primary:hover,.builder-add:hover{
+  filter:saturate(1.05) brightness(1.02);
+  box-shadow:0 13px 28px rgba(255,90,0,.25) !important;
+}
+button.primary:active,.primary:active,.guided-primary:active,.builder-add:active{
+  transform:scale(.97) !important;
+}
+
+/* Controls */
+input,textarea,select{
+  transition:border-color .2s ease,box-shadow .2s ease,background .2s ease,transform .2s ease !important;
+}
+input:hover,textarea:hover,select:hover{
+  border-color:rgba(17,17,17,.16) !important;
+}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--accent) !important;
+  box-shadow:0 0 0 4px rgba(255,90,0,.10) !important;
+  outline:none !important;
+}
+
+/* Pills / badges */
+.pill,.note-badge,.live{
+  transition:background .2s ease,color .2s ease,transform .2s ease !important;
+}
+.pill:hover,.note-badge:hover{
+  transform:translateY(-1px);
+}
+
+/* Exercise rows */
+.exercise,.exercise-row,.workout-exercise{
+  transition:background .22s ease,transform .22s ease !important;
+}
+.exercise:hover,.exercise-row:hover,.workout-exercise:hover{
+  background:rgba(255,90,0,.025) !important;
+}
+
+/* Guided mode */
+.guided-overlay{
+  background:rgba(7,8,10,.38) !important;
+  backdrop-filter:blur(18px) saturate(120%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(120%) !important;
+}
+.guided-sheet{
+  box-shadow:0 -22px 80px rgba(0,0,0,.28) !important;
+}
+.guided-time{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.055em;
+}
+.guided-progress{
+  overflow:hidden;
+}
+.guided-progress > *{
+  transition:width .45s cubic-bezier(.2,.8,.2,1),transform .45s ease !important;
+}
+
+/* Modal / sheet polish */
+.modal,.sheet,.bottom-sheet,.ai-import-modal{
+  backdrop-filter:blur(18px) saturate(120%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(120%) !important;
+}
+.modal-wrap,.sheet,.bottom-sheet{
+  box-shadow:0 30px 100px rgba(0,0,0,.20) !important;
+}
+
+/* Scrollbars */
+*{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(17,17,17,.18) transparent;
+}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(17,17,17,.16);border-radius:999px}
+
+/* Reveal animation */
+.level-reveal{
+  opacity:0;
+  transform:translateY(10px);
+  transition:opacity .55s ease,transform .55s cubic-bezier(.2,.8,.2,1);
+}
+.level-reveal.level-visible{
+  opacity:1;
+  transform:none;
+}
+
+/* Tap ripple */
+.level-ripple{
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+  background:rgba(255,90,0,.18);
+  transform:scale(0);
+  animation:levelRipple .5s ease-out forwards;
+}
+@keyframes levelRipple{
+  to{transform:scale(1);opacity:0}
+}
+
+/* Loading shimmer */
+.level-loading{
+  position:relative;
+  overflow:hidden;
+}
+.level-loading::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  animation:levelShimmer 1.15s infinite;
+}
+@keyframes levelShimmer{to{transform:translateX(100%)}}
+
+/* Desktop compact polish */
+@media(min-width:761px){
+  .shell{padding-top:28px !important;}
+}
+
+/* Mobile — native-feeling spacing and safe area */
+@media(max-width:760px){
+  body{padding-bottom:env(safe-area-inset-bottom);}
+  .shell{padding-bottom:calc(128px + env(safe-area-inset-bottom)) !important;}
+  .nav{
+    bottom:calc(14px + env(safe-area-inset-bottom)) !important;
+    width:calc(100% - 24px) !important;
+  }
+  .card,.hero,.setup-card{
+    border-radius:24px !important;
+  }
+  .section-actions{gap:8px !important;}
+  button,.icon-btn,.setup-card,.nav-item{
+    -webkit-tap-highlight-color:transparent;
+  }
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:.01ms !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="app"></div><div id="nav-root"></div><div id="modal" class="modal-wrap"></div><div id="guided-root"></div><div id="toast" class="toast"></div>
@@ -633,6 +847,65 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
       navigator.vibrate(strong?10:6);
     }
   },{passive:true});
+})();
+</script>
+
+
+<script id="level-premium-v32-js">
+(function(){
+  const vibrate=(ms=7)=>{
+    try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){}
+  };
+
+  /* Subtle tactile ripple on tappable elements */
+  document.addEventListener('pointerdown',e=>{
+    if(e.pointerType!=='touch') return;
+    const el=e.target.closest('button,.icon-btn,.setup-card,.nav-item,.primary,.secondary,[role="button"]');
+    if(!el || el.disabled) return;
+    if(getComputedStyle(el).position==='static') el.style.position='relative';
+    if(getComputedStyle(el).overflow==='visible') el.style.overflow='hidden';
+    const r=el.getBoundingClientRect();
+    const size=Math.max(r.width,r.height)*1.15;
+    const ripple=document.createElement('span');
+    ripple.className='level-ripple';
+    ripple.style.width=ripple.style.height=size+'px';
+    ripple.style.left=(e.clientX-r.left-size/2)+'px';
+    ripple.style.top=(e.clientY-r.top-size/2)+'px';
+    el.appendChild(ripple);
+    setTimeout(()=>ripple.remove(),550);
+  },{passive:true});
+
+  /* Progressive reveal for newly rendered sections/cards */
+  const reveal=()=>{
+    const nodes=document.querySelectorAll('.card,.hero,.setup-card,.stat,.workout-card,.history-item');
+    nodes.forEach((el,i)=>{
+      if(el.dataset.levelReveal) return;
+      el.dataset.levelReveal='1';
+      el.classList.add('level-reveal');
+      requestAnimationFrame(()=>setTimeout(()=>el.classList.add('level-visible'),Math.min(i*35,240)));
+    });
+  };
+  const observer=new MutationObserver(()=>reveal());
+  observer.observe(document.body,{subtree:true,childList:true});
+  reveal();
+
+  /* Extra tactile feedback for meaningful state changes */
+  document.addEventListener('click',e=>{
+    const el=e.target.closest('.guided-primary,.builder-add,.primary,.nav-item,.icon-btn');
+    if(!el || el.disabled) return;
+    vibrate(el.classList.contains('guided-primary')||el.classList.contains('primary')?10:6);
+  },{passive:true});
+
+  /* Desktop keyboard shortcuts — unobtrusive, no conflict with form fields */
+  document.addEventListener('keydown',e=>{
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    const tag=(document.activeElement?.tagName||'').toLowerCase();
+    if(['input','textarea','select'].includes(tag)) return;
+    if(e.key==='Escape'){
+      const close=document.querySelector('.modal.open [data-close],.modal.show [data-close],.sheet.open [data-close],.bottom-sheet.open [data-close],.guided-overlay.open [data-close],.ai-import-modal.open [data-close]');
+      if(close){close.click();vibrate(8);}
+    }
+  });
 })();
 </script>
 

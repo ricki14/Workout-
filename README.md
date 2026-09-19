@@ -1,11 +1,7 @@
-# Riccardo Workout v22
+# LEVEL v25
 
-Importazione scheda senza API AI:
-1. L'utente apre Importa con AI.
-2. Copia il prompt.
-3. Carica il PDF in ChatGPT o altra AI.
-4. Copia la risposta.
-5. Incolla nell'app.
-6. L'app interpreta il testo e prepara la scheda per la revisione.
-
-Non serve OPENAI_API_KEY e non vengono effettuate chiamate AI dal sito.
+Rebrand dell'app mantenendo lo stile e la UX esistenti.
+- Nome: LEVEL
+- Logo: marchio geometrico L inline SVG
+- Colore secondario: arancione fluo (#ff5a00)
+- Nessuna modifica alla struttura funzionale dell'app.

@@ -152,12 +152,19 @@ function recordLoads(r){return r?.loads&&typeof r.loads==="object"?r.loads:{}}
 function lastLoad(exId){for(const r of state.records){const x=recordLoads(r)[exId];if(x?.weight!==undefined&&x.weight!=="")return x.weight}return ""}
 
 function parseSets(scheme){const m=String(scheme).match(/^(\d+)x/);return m?Number(m[1]):1}
+function parseRestValue(value){
+  const s=String(value).trim().replace(/\s+/g,"");
+  const m=s.match(/^(\d+)(?:[’'](\d{1,2})[”’’\"]*|[’'])$/);
+  if(m)return Number(m[1])*60+Number(m[2]||0);
+  const n=Number(s.replace(/[^0-9]/g,""));
+  return Number.isFinite(n)&&n>0?n*60:60;
+}
 function parseRestRange(rest){
-  const m=[...String(rest).matchAll(/(\d+)\s*[’']\s*(?:(?:\s*\/\s*)(\d+)\s*[’'])?/g)];
-  if(!m.length)return {min:60,max:60};
-  const min=Number(m[0][1])*60;
-  const max=m[0][2]?Number(m[0][2])*60:min;
-  return {min,max};
+  const parts=String(rest).split(/\s*\/\s*/);
+  if(!parts.length)return {min:60,max:60};
+  const min=parseRestValue(parts[0]);
+  const max=parts[1]?parseRestValue(parts[1]):min;
+  return {min,max:Math.max(min,max)};
 }
 function guidedExercise(){const g=state.guided;if(!g)return null;return DAYS[g.day]?.items[g.exIndex]||null}
 function guidedNextExercise(){const g=state.guided;if(!g)return null;return DAYS[g.day]?.items[g.exIndex+1]||null}
@@ -168,16 +175,20 @@ function guidedClose(){guidedClearTimer();state.guided=null;document.getElementB
 function guidedStartRest(rest,phase){
  const g=state.guided;if(!g)return;guidedClearTimer();
  const range=typeof rest==='number'?{min:rest,max:rest}:rest;
- g.phase=phase;g.restMin=range.min;g.restMax=range.max;g.remaining=range.min;g.overtime=0;g.extended=false;
- g.endsAt=Date.now()+range.min*1000;g.interval=setInterval(guidedTick,250);renderGuided();
+ g.phase=phase;g.restMin=range.min;g.restMax=Math.max(range.min,range.max);g.remaining=range.min;g.overtime=0;g.extended=false;
+ g.startedAt=Date.now();g.endsAt=g.startedAt+range.min*1000;
+ g.interval=setInterval(guidedTick,200);renderGuided();
 }
 function guidedTick(){
- const g=state.guided;if(!g)return;
- const elapsed=(Date.now()-((g.endsAt||Date.now())-g.restMin*1000))/1000;
- const minLeft=Math.ceil(g.restMin-elapsed);
- if(elapsed<=g.restMin){g.remaining=Math.max(0,minLeft);g.overtime=0;g.extended=false}
- else if(elapsed<=g.restMax){g.remaining=Math.max(0,Math.ceil(g.restMax-elapsed));g.overtime=0;g.extended=true}
- else {g.remaining=0;g.overtime=Math.ceil(elapsed-g.restMax);g.extended=false}
+ const g=state.guided;if(!g||!g.startedAt)return;
+ const elapsed=(Date.now()-g.startedAt)/1000;
+ if(elapsed<g.restMin){
+   g.remaining=Math.ceil(g.restMin-elapsed);g.overtime=0;g.extended=false;
+ }else if(elapsed<g.restMax){
+   g.remaining=Math.ceil(g.restMax-elapsed);g.overtime=0;g.extended=true;
+ }else{
+   g.remaining=0;g.overtime=Math.ceil(elapsed-g.restMax);g.extended=false;
+ }
  updateGuidedTimer();
 }
 function updateGuidedTimer(){
@@ -190,12 +201,31 @@ function guidedLoadPrompt(){const g=state.guided;if(!g)return;g.phase="load";gui
 async function guidedSaveLoad(){const g=state.guided,input=document.querySelector("#guided-load-input");if(!g||!input)return;const raw=input.value.trim().replace(",",".");if(raw===""){toast("Inserisci il carico usato");return}const weight=Number(raw);if(!Number.isFinite(weight)||weight<0){toast("Inserisci un carico valido");return}const ex=guidedExercise();g.loads[ex[0]]=String(weight);const loads={...g.loads};let res;if(g.recordId){res=await sb.from("workout_records").update({loads}).eq("id",g.recordId).eq("user_id",state.user.id).select().single()}else{res=await sb.from("workout_records").insert({user_id:state.user.id,date:today(),day:g.day,loads}).select().single();if(!res.error)g.recordId=res.data.id}if(res.error){console.error(res.error);toast("Errore nel salvataggio automatico");return}await loadData();const next=guidedNextExercise();if(next){guidedStartRest(180,"exercise-rest")}else{g.phase="done";renderGuided();toast("Allenamento completato")}}
 function guidedFinishRest(){const g=state.guided;if(!g)return;guidedClearTimer();if(g.phase==="set-rest"){g.setIndex++;g.phase="ready";g.remaining=0;g.overtime=0;g.extended=false;renderGuided();return}if(g.phase==="exercise-rest"){g.exIndex++;g.setIndex=1;g.phase="ready";g.remaining=0;g.overtime=0;g.extended=false;renderGuided()}}
 function guidedFinish(){guidedClearTimer();state.guided=null;loadData();renderGuided();render()}
-function renderGuided(){const root=document.getElementById("guided-root");const g=state.guided;if(!g){root.innerHTML="";return}const ex=guidedExercise();if(!ex){guidedClose();return}const totalSets=parseSets(ex[2]),next=guidedNextExercise(),progress=((g.exIndex)/DAYS[g.day].items.length)*100;let body="";
-if(g.phase==="ready"){body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(0)}</div><small>Pronto per la serie ${g.setIndex} di ${totalSets}</small></div><div class="guided-actions"><a class="guided-secondary" style="display:grid;place-items:center;text-decoration:none" href="${ex[4]}" target="_blank" rel="noopener">Guarda il video ↗</a><button class="guided-primary" data-guided="finish-set">Ho finito la serie</button><button class="guided-secondary" data-guided="close">Esci dall’allenamento</button></div>`}
-else if(g.phase==="load"){body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(0)}</div><small>Tutte le ${totalSets} serie completate</small></div><div class="guided-load show"><label for="guided-load-input">Carico usato nell’esercizio</label><div style="display:flex;align-items:center;gap:8px"><input id="guided-load-input" class="input" inputmode="decimal" type="text" placeholder="es. 20" autocomplete="off"><strong>kg</strong></div><div class="guided-note">Il carico viene salvato automaticamente nel tuo storico.</div></div><div class="guided-actions"><button class="guided-primary" data-guided="save-load">Salva e avvia recupero</button></div>`}
-else if(g.phase==="set-rest"||g.phase==="exercise-rest"){const range=`${guidedFormat(g.restMin)}${g.restMax>g.restMin?` → ${guidedFormat(g.restMax)}`:""}`;const label=g.phase==="set-rest"?`Recupero tra le serie · ${range}`:`Recupero tra gli esercizi · ${range} · ${next?next[1]:"Fine"}`;body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(g.remaining)}</div><small>${label}</small><div class="guided-extra"></div></div><div class="guided-actions"><button class="guided-primary" data-guided="rest-done">${g.phase==="set-rest"?"Fine recupero → prossima serie":"Vai al prossimo esercizio"}</button><button class="guided-secondary" data-guided="close">Esci dall’allenamento</button></div>`}
-else {body=`<div class="guided-finish show"><div class="check">✓</div><h3>Allenamento completato.</h3><p>Hai completato tutti gli esercizi del Giorno ${g.day}. I carichi sono già stati salvati.</p></div><div class="guided-actions"><button class="guided-primary" data-guided="close-finish">Chiudi</button></div>`}
-root.innerHTML=`<div class="guided-overlay show"><section class="guided-sheet"><div class="guided-grab"></div><div class="guided-top"><div><div class="guided-kicker">Giorno ${g.day} · ${DAYS[g.day].name}</div><div class="guided-badge">Esercizio ${g.exIndex+1} di ${DAYS[g.day].items.length}</div></div><button class="guided-close" data-guided="close" aria-label="Chiudi">×</button></div><h2 class="guided-title">${esc(ex[1])}</h2><p class="guided-sub">${esc(ex[2])} · recupero ${esc(ex[3])}${g.phase==="exercise-rest"&&next?` · prossimo: ${esc(next[1])}`:""}</p><div class="guided-progress"><span style="width:${Math.max(4,progress)}%"></span></div>${body}</section></div>`;updateGuidedTimer()}
+function guidedProgress(){
+ const g=state.guided;if(!g)return 0;
+ const items=DAYS[g.day].items;
+ let done=0;
+ for(let i=0;i<g.exIndex;i++) done+=parseSets(items[i][2]);
+ done+=Math.max(0,Math.min(g.setIndex-1,parseSets(items[g.exIndex][2])));
+ const total=items.reduce((sum,i)=>sum+parseSets(i[2]),0);
+ return total?Math.min(100,(done/total)*100):0;
+}
+function renderGuided(){
+ const root=document.getElementById("guided-root");const g=state.guided;if(!g){root.innerHTML="";return}
+ const ex=guidedExercise();if(!ex){guidedClose();return}
+ const totalSets=parseSets(ex[2]),next=guidedNextExercise(),progress=guidedProgress();let body="";
+ const inExerciseRest=g.phase==="exercise-rest";
+ const title=inExerciseRest?(next?"Recupero completato":"Allenamento completato"):ex[1];
+ const sub=inExerciseRest?(next?`Preparati per ${next[1]}`:"Hai terminato tutti gli esercizi"):`${esc(ex[2])} · recupero ${esc(ex[3])}`;
+ if(g.phase==="ready"){body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(0)}</div><small>Pronto per la serie ${g.setIndex} di ${totalSets}</small></div><div class="guided-actions"><a class="guided-secondary" style="display:grid;place-items:center;text-decoration:none" href="${ex[4]}" target="_blank" rel="noopener">Guarda il video ↗</a><button class="guided-primary" data-guided="finish-set">Ho finito la serie</button><button class="guided-secondary" data-guided="close">Esci dall’allenamento</button></div>`}
+ else if(g.phase==="load"){body=`<div class="guided-timer"><div class="guided-time">✓</div><small>Tutte le ${totalSets} serie completate</small></div><div class="guided-load show"><label for="guided-load-input">Carico usato nell’esercizio</label><div style="display:flex;align-items:center;gap:8px"><input id="guided-load-input" class="input" inputmode="decimal" type="text" placeholder="es. 20" autocomplete="off"><strong>kg</strong></div><div class="guided-note">Un solo carico per l’intero esercizio. Verrà salvato automaticamente.</div></div><div class="guided-actions"><button class="guided-primary" data-guided="save-load">Salva e continua</button></div>`}
+ else if(g.phase==="set-rest"||g.phase==="exercise-rest"){
+   const range=`${guidedFormat(g.restMin)}${g.restMax>g.restMin?` → ${guidedFormat(g.restMax)}`:""}`;
+   const label=g.phase==="set-rest"?`Recupero tra le serie · ${range}`:`Recupero tra gli esercizi · 03:00`;
+   body=`<div class="guided-timer"><div class="guided-time">${guidedFormat(g.remaining)}</div><small>${label}</small><div class="guided-extra"></div></div><div class="guided-actions"><button class="guided-primary" data-guided="rest-done">${g.phase==="set-rest"?"Fine recupero → prossima serie":(next?`Inizia ${esc(next[1])}`:"Fine allenamento")}</button><button class="guided-secondary" data-guided="close">Esci dall’allenamento</button></div>`
+ }
+ else {body=`<div class="guided-finish show"><div class="check">✓</div><h3>Allenamento completato.</h3><p>Hai completato tutti gli esercizi del Giorno ${g.day}. I carichi sono già stati salvati.</p></div><div class="guided-actions"><button class="guided-primary" data-guided="close-finish">Chiudi</button></div>`}
+ root.innerHTML=`<div class="guided-overlay show"><section class="guided-sheet"><div class="guided-grab"></div><div class="guided-top"><div><div class="guided-kicker">Giorno ${g.day} · ${DAYS[g.day].name}</div><div class="guided-badge">${inExerciseRest?(next?"Prossimo esercizio":"Fine allenamento"):`Esercizio ${g.exIndex+1} di ${DAYS[g.day].items.length}`}</div></div><button class="guided-close" data-guided="close" aria-label="Chiudi">×</button></div><h2 class="guided-title">${esc(title)}</h2><p class="guided-sub">${sub}</p><div class="guided-progress"><span style="width:${Math.max(0,progress)}%"></span></div>${body}</section></div>`;updateGuidedTimer()}
 let __renderToken=0;
 function render(){
  const app=document.getElementById("app");

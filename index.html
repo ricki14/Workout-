@@ -503,7 +503,12 @@ input:focus,textarea:focus,select:focus{
 <style id="pushup-counter-css">
 .pushup-counter{position:fixed;inset:0;z-index:260;background:rgba(10,10,12,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);display:none;align-items:center;justify-content:center;padding:14px}.pushup-counter.show{display:flex}.pushup-card{width:min(560px,100%);background:#f8f8fa;border-radius:30px;padding:16px;box-shadow:0 30px 100px rgba(0,0,0,.35)}.pushup-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pushup-head h2{margin:0;font-size:25px;letter-spacing:-.045em}.pushup-close{width:40px;height:40px;border-radius:50%;background:#e8e8ed;font-size:22px}.pushup-stage{position:relative;aspect-ratio:3/4;background:#111;border-radius:24px;overflow:hidden}.pushup-stage video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.pushup-stage canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}.pushup-count{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.62);color:#fff;border-radius:18px;padding:8px 18px;text-align:center;min-width:105px}.pushup-count b{display:block;font-size:42px;line-height:1;letter-spacing:-.06em}.pushup-count span{font-size:10px;font-weight:800;letter-spacing:.08em}.pushup-status{position:absolute;bottom:14px;left:14px;right:14px;background:rgba(0,0,0,.62);color:#fff;border-radius:15px;padding:10px 12px;font-size:12px;font-weight:750;text-align:center}.pushup-actions{display:flex;gap:9px;margin-top:12px}.pushup-actions button{flex:1;min-height:50px;border-radius:16px;font-weight:850}.pushup-hint{color:#777;font-size:12px;line-height:1.4;margin:10px 2px 0;text-align:center}@media(max-width:500px){.pushup-counter{padding:0;align-items:flex-end}.pushup-card{border-radius:30px 30px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));max-height:96dvh}.pushup-stage{aspect-ratio:9/13}}
 </style>
-</head>
+<style id="level-pushup-v43-css">
+@media(min-width:701px){.level-pushup-mobile-only{display:none!important}}
+.pushup-prep{position:absolute;inset:0;z-index:4;display:grid;place-items:center;background:rgba(0,0,0,.68);color:#fff;text-align:center}.pushup-prep .num{font-size:110px;font-weight:900;letter-spacing:-.08em;line-height:.9}.pushup-prep small{display:block;margin-top:12px;font-size:13px;color:#ddd;font-weight:750}
+.pushup-cal{position:absolute;inset:0;z-index:5;display:none;place-items:center;background:rgba(0,0,0,.72);color:#fff;text-align:center;padding:20px}.pushup-cal.show{display:grid}.pushup-cal .num{font-size:76px;font-weight:900}.pushup-cal p{max-width:280px;line-height:1.4;color:#ddd;margin:10px auto 0}
+.pushup-timer{position:absolute;top:14px;right:14px;z-index:3;background:rgba(0,0,0,.62);color:#fff;border-radius:14px;padding:7px 10px;font-size:14px;font-weight:850;font-variant-numeric:tabular-nums}
+</style></head>
 <body>
 <div id="app"></div><div id="nav-root"></div><div id="modal" class="modal-wrap"></div><div id="guided-root"></div><div id="toast" class="toast"></div>
 <script>
@@ -575,7 +580,7 @@ function guidedExercise(){const g=state.guided;if(!g)return null;return DAYS[g.d
 function guidedNextExercise(){const g=state.guided;if(!g)return null;return DAYS[g.day]?.items[g.exIndex+1]||null}
 function guidedClearTimer(){if(state.guided?.interval){clearInterval(state.guided.interval);state.guided.interval=null}}
 function guidedFormat(sec){sec=Math.max(0,Math.floor(sec));const m=Math.floor(sec/60),s=sec%60;return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
-function guidedStart(day){guidedClearTimer();state.guided={day:Number(day),exIndex:0,setIndex:1,phase:"ready",remaining:0,endsAt:null,interval:null,overtime:0,recordId:null,loads:{},restMin:0,restMax:0,extended:false};renderGuided()}
+function guidedStart(day){if("Notification" in window&&Notification.permission==="default"){Notification.requestPermission().catch(()=>{});}guidedClearTimer();state.guided={day:Number(day),exIndex:0,setIndex:1,phase:"ready",remaining:0,endsAt:null,interval:null,overtime:0,recordId:null,loads:{},restMin:0,restMax:0,extended:false};renderGuided()}
 function guidedClose(){guidedClearTimer();state.guided=null;document.getElementById("guided-root").innerHTML=""}
 function guidedStartRest(rest,phase){
  const g=state.guided;if(!g)return;guidedClearTimer();
@@ -584,6 +589,7 @@ function guidedStartRest(rest,phase){
  g.startedAt=Date.now();g.endsAt=g.startedAt+range.min*1000;
  g.interval=setInterval(guidedTick,200);renderGuided();
 }
+function guidedNotify(title,body){try{if("Notification" in window&&Notification.permission==="granted"&&document.hidden)new Notification(title,{body,tag:"level-guided",renotify:true})}catch(e){}}
 function guidedTick(){
  const g=state.guided;if(!g||!g.startedAt)return;
  const elapsed=(Date.now()-g.startedAt)/1000;
@@ -613,22 +619,58 @@ function guidedProgress(){
  return total?Math.min(100,(done/total)*100):0;
 }
 let pushupStream=null,pushupPose=null,pushupRAF=null,pushupCount=0,pushupPhase="up",pushupBusy=false;
+let pushupMode="countdown",pushupCalSamples=[],pushupBaseline=null,pushupDepth=null,pushupStartedAt=0,pushupLastCountAt=0,pushupTimerRAF=null;
 function pushupAngle(a,b,c){const ab={x:a.x-b.x,y:a.y-b.y},cb={x:c.x-b.x,y:c.y-b.y};const dot=ab.x*cb.x+ab.y*cb.y;const den=Math.hypot(ab.x,ab.y)*Math.hypot(cb.x,cb.y);return den?Math.acos(Math.max(-1,Math.min(1,dot/den)))*180/Math.PI:180}
-function closePushupCounter(){if(pushupRAF)cancelAnimationFrame(pushupRAF);pushupRAF=null;if(pushupStream){pushupStream.getTracks().forEach(t=>t.stop());pushupStream=null}if(pushupPose){try{pushupPose.close()}catch(e){}pushupPose=null}document.getElementById("pushup-counter")?.remove()}
+function pushupCloseStream(){if(pushupRAF)cancelAnimationFrame(pushupRAF);pushupRAF=null;if(pushupTimerRAF)cancelAnimationFrame(pushupTimerRAF);pushupTimerRAF=null;if(pushupStream){pushupStream.getTracks().forEach(t=>t.stop());pushupStream=null}if(pushupPose){try{pushupPose.close()}catch(e){}pushupPose=null}}
+function savePushupSession(){try{const arr=JSON.parse(localStorage.getItem("level_pushup_sessions")||"[]");arr.unshift({date:today(),reps:pushupCount,seconds:Math.max(0,Math.floor((Date.now()-pushupStartedAt)/1000))});localStorage.setItem("level_pushup_sessions",JSON.stringify(arr.slice(0,100)))}catch(e){}}
+function closePushupCounter(){if(pushupStartedAt)savePushupSession();pushupCloseStream();document.getElementById("pushup-counter")?.remove()}
+function pushupStartCounting(){pushupMode="counting";pushupCount=0;pushupPhase="up";pushupLastCountAt=0;pushupStartedAt=Date.now();const prep=document.getElementById("pushup-prep");if(prep)prep.remove();const status=document.getElementById("pushup-status");if(status)status.textContent="Posizione alta · scendi"}
+function pushupCountdown(el){let n=3;const tick=()=>{if(!document.getElementById("pushup-counter")||!el)return;if(n>0){el.querySelector(".num").textContent=n;el.querySelector("small").textContent="Preparati";n--;setTimeout(tick,1000)}else{el.querySelector(".num").textContent="VIA";el.querySelector("small").textContent="Inizia i push-up";setTimeout(()=>{if(el.isConnected)el.remove();pushupStartCounting()},550)}};tick()}
+function pushupBeginCalibration(){
+ const cal=document.getElementById("pushup-cal");if(!cal)return;
+ cal.classList.add("show");pushupMode="calibration";pushupCalSamples=[];pushupBaseline=null;pushupDepth=null;
+ let left=2;cal.querySelector(".num").textContent=left;
+ const iv=setInterval(()=>{left--;if(!document.getElementById("pushup-counter")){clearInterval(iv);return}if(left>0)cal.querySelector(".num").textContent=left;else{clearInterval(iv);cal.querySelector(".num").textContent="VIA";cal.querySelector("p").textContent="Ora fai una discesa completa e risali lentamente.";setTimeout(()=>{if(cal)cal.classList.remove("show");pushupMode="calibration-move"},650)}},1000);
+}
+function pushupMetric(r){
+ const L=window.POSE_LANDMARKS||{LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_HIP:23,RIGHT_HIP:24};
+ const s1=r.poseLandmarks[L.LEFT_SHOULDER],s2=r.poseLandmarks[L.RIGHT_SHOULDER],h1=r.poseLandmarks[L.LEFT_HIP],h2=r.poseLandmarks[L.RIGHT_HIP];
+ if(!s1||!s2||!h1||!h2)return null;
+ return (s1.y+s2.y+h1.y+h2.y)/4;
+}
 async function openPushupCounter(){
- closePushupCounter();pushupCount=0;pushupPhase="up";pushupBusy=false;
- const wrap=document.createElement("div");wrap.id="pushup-counter";wrap.className="pushup-counter show";wrap.innerHTML=`<div class="pushup-card"><div class="pushup-head"><div><div class="eyebrow">LEVEL · PUSH UP</div><h2>Conta le ripetizioni</h2></div><button class="pushup-close" data-pushup-close>×</button></div><div class="pushup-stage"><video id="pushup-video" autoplay muted playsinline></video><canvas id="pushup-canvas"></canvas><div class="pushup-count"><b id="pushup-number">0</b><span>RIPETIZIONI</span></div><div class="pushup-status" id="pushup-status">Inquadra tutto il corpo lateralmente e preparati.</div></div><div class="pushup-actions"><button class="secondary" data-pushup-close>Chiudi</button></div><p class="pushup-hint">Il conteggio avviene sul dispositivo. Per un rilevamento più preciso tieni visibili spalle, gomiti, anche e gambe.</p></div>`;document.body.appendChild(wrap);
- try{pushupStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:960}},audio:false});const video=document.getElementById("pushup-video");video.srcObject=pushupStream;await video.play();
- if(!window.Pose){document.getElementById("pushup-status").textContent="Il rilevamento non è disponibile in questo browser.";return}
- const canvas=document.getElementById("pushup-canvas"),ctx=canvas.getContext("2d");
- pushupPose=new Pose({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});pushupPose.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.55,minTrackingConfidence:.55});
- pushupPose.onResults(r=>{canvas.width=r.image.width||video.videoWidth;canvas.height=r.image.height||video.videoHeight;ctx.clearRect(0,0,canvas.width,canvas.height);if(!r.poseLandmarks)return;const L=window.POSE_LANDMARKS||{LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_ELBOW:13,RIGHT_ELBOW:14,LEFT_WRIST:15,RIGHT_WRIST:16,LEFT_HIP:23,RIGHT_HIP:24};
- const ls=r.poseLandmarks[L.LEFT_SHOULDER],le=r.poseLandmarks[L.LEFT_ELBOW],lw=r.poseLandmarks[L.LEFT_WRIST],lh=r.poseLandmarks[L.LEFT_HIP];const rs=r.poseLandmarks[L.RIGHT_SHOULDER],re=r.poseLandmarks[L.RIGHT_ELBOW],rw=r.poseLandmarks[L.RIGHT_WRIST],rh=r.poseLandmarks[L.RIGHT_HIP];
- const candidates=[];if(ls&&le&&lw)candidates.push(pushupAngle(ls,le,lw));if(rs&&re&&rw)candidates.push(pushupAngle(rs,re,rw));const angle=candidates.length?Math.min(...candidates):null;
- const status=document.getElementById("pushup-status");if(angle==null){status.textContent="Corpo non rilevato: allontanati leggermente.";return}
- if(angle<105){pushupPhase="down";status.textContent="Posizione bassa ✓"}else if(angle>155&&pushupPhase==="down"){pushupPhase="up";pushupCount++;document.getElementById("pushup-number").textContent=pushupCount;status.textContent=`Ripetizione ${pushupCount} ✓`;}else if(angle>145){status.textContent="Posizione alta · scendi"}else{status.textContent="Movimento rilevato"}
- });
- const loop=async()=>{if(!document.getElementById("pushup-counter")||!pushupPose)return;if(!pushupBusy&&video.readyState>=2){pushupBusy=true;try{await pushupPose.send({image:video})}catch(e){}pushupBusy=false}pushupRAF=requestAnimationFrame(loop)};loop();
+ closePushupCounter();pushupCount=0;pushupPhase="up";pushupBusy=false;pushupMode="countdown";pushupStartedAt=0;
+ const wrap=document.createElement("div");wrap.id="pushup-counter";wrap.className="pushup-counter show";wrap.innerHTML=`<div class="pushup-card"><div class="pushup-head"><div><div class="eyebrow">LEVEL · PUSH UP</div><h2>Conta le ripetizioni</h2></div><button class="pushup-close" data-pushup-close>×</button></div><div class="pushup-stage"><video id="pushup-video" autoplay muted playsinline></video><canvas id="pushup-canvas"></canvas><div class="pushup-timer" id="pushup-timer">00:00</div><div class="pushup-count"><b id="pushup-number">0</b><span>RIPETIZIONI</span></div><div class="pushup-status" id="pushup-status">Preparati</div><div class="pushup-prep" id="pushup-prep"><div><div class="num">3</div><small>Preparati</small></div></div><div class="pushup-cal" id="pushup-cal"><div><div class="num">2</div><p>Prima volta: calibrazione. Mantieni la posizione alta.</p></div></div></div><div class="pushup-actions"><button class="secondary" data-pushup-close>Chiudi</button></div><p class="pushup-hint">Appoggia il telefono a terra davanti alla testa. La prima volta LEVEL calibra il tuo movimento e salva la calibrazione sul dispositivo.</p></div>`;document.body.appendChild(wrap);
+ try{
+  pushupStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:960}},audio:false});
+  const video=document.getElementById("pushup-video");video.srcObject=pushupStream;await video.play();
+  if(!window.Pose){document.getElementById("pushup-status").textContent="Il rilevamento non è disponibile in questo browser.";return}
+  const canvas=document.getElementById("pushup-canvas"),ctx=canvas.getContext("2d");
+  pushupPose=new Pose({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});pushupPose.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.65,minTrackingConfidence:.65});
+  let saved=null;try{saved=JSON.parse(localStorage.getItem("level_pushup_calibration")||"null")}catch(e){}
+  pushupPose.onResults(r=>{
+   canvas.width=r.image.width||video.videoWidth;canvas.height=r.image.height||video.videoHeight;ctx.clearRect(0,0,canvas.width,canvas.height);
+   const status=document.getElementById("pushup-status");if(!r.poseLandmarks){if(status)status.textContent="Non ti vedo: sistema leggermente il telefono.";return}
+   const metric=pushupMetric(r);if(metric==null)return;
+   if(pushupMode==="calibration"){
+     pushupCalSamples.push(metric);
+     if(pushupCalSamples.length>12){
+       const base=Math.min(...pushupCalSamples),deep=Math.max(...pushupCalSamples);
+       if(deep-base>.045){pushupBaseline=base;pushupDepth=deep;localStorage.setItem("level_pushup_calibration",JSON.stringify({baseline:base,depth:deep,version:2}));pushupMode="counting";pushupStartedAt=Date.now();if(status)status.textContent="Calibrazione completata · vai"}
+     }
+     return;
+   }
+   if(pushupMode!=="counting"||!Number.isFinite(pushupBaseline)||!Number.isFinite(pushupDepth))return;
+   const range=Math.max(.045,pushupDepth-pushupBaseline),downT=pushupBaseline+range*.62,upT=pushupBaseline+range*.25,now=Date.now();
+   if(metric>=downT&&pushupPhase==="up"){pushupPhase="down";if(status)status.textContent="Posizione bassa ✓"}
+   else if(metric<=upT&&pushupPhase==="down"&&now-pushupLastCountAt>850){pushupPhase="up";pushupLastCountAt=now;pushupCount++;const n=document.getElementById("pushup-number");if(n)n.textContent=pushupCount;if(status)status.textContent=`Ripetizione ${pushupCount} ✓`}
+   else if(metric<upT&&pushupPhase==="up"){if(status)status.textContent="Posizione alta · scendi"}
+  });
+  const loop=async()=>{if(!document.getElementById("pushup-counter")||!pushupPose)return;if(!pushupBusy&&video.readyState>=2){pushupBusy=true;try{await pushupPose.send({image:video})}catch(e){}pushupBusy=false}pushupRAF=requestAnimationFrame(loop)};loop();
+  const timer=()=>{const el=document.getElementById("pushup-timer");if(!el||!document.getElementById("pushup-counter"))return;el.textContent=guidedFormat(pushupStartedAt?((Date.now()-pushupStartedAt)/1000):0);pushupTimerRAF=requestAnimationFrame(timer)};pushupTimerRAF=requestAnimationFrame(timer);
+  pushupCountdown(document.getElementById("pushup-prep"));
+  if(!saved||!Number.isFinite(saved.baseline)||!Number.isFinite(saved.depth))setTimeout(()=>{if(document.getElementById("pushup-counter"))pushupBeginCalibration()},3550);
+  else{pushupBaseline=saved.baseline;pushupDepth=saved.depth}
  }catch(err){document.getElementById("pushup-status").textContent=err?.name==="NotAllowedError"?"Consenti l'accesso alla fotocamera per usare il conteggio.":"Fotocamera non disponibile su questo dispositivo."}
 }
 function renderGuided(){

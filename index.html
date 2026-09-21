@@ -619,28 +619,32 @@ function guidedProgress(){
  return total?Math.min(100,(done/total)*100):0;
 }
 let pushupStream=null,pushupPose=null,pushupRAF=null,pushupCount=0,pushupPhase="up",pushupBusy=false;
-let pushupMode="countdown",pushupCalSamples=[],pushupBaseline=null,pushupDepth=null,pushupStartedAt=0,pushupLastCountAt=0,pushupTimerRAF=null;
+let pushupMode="countdown",pushupCalSamples=[],pushupBaseline=null,pushupDepth=null,pushupStartedAt=0,pushupLastCountAt=0,pushupTimerRAF=null,pushupMetricSmooth=null;
 function pushupAngle(a,b,c){const ab={x:a.x-b.x,y:a.y-b.y},cb={x:c.x-b.x,y:c.y-b.y};const dot=ab.x*cb.x+ab.y*cb.y;const den=Math.hypot(ab.x,ab.y)*Math.hypot(cb.x,cb.y);return den?Math.acos(Math.max(-1,Math.min(1,dot/den)))*180/Math.PI:180}
 function pushupCloseStream(){if(pushupRAF)cancelAnimationFrame(pushupRAF);pushupRAF=null;if(pushupTimerRAF)cancelAnimationFrame(pushupTimerRAF);pushupTimerRAF=null;if(pushupStream){pushupStream.getTracks().forEach(t=>t.stop());pushupStream=null}if(pushupPose){try{pushupPose.close()}catch(e){}pushupPose=null}}
 function savePushupSession(){try{const arr=JSON.parse(localStorage.getItem("level_pushup_sessions")||"[]");arr.unshift({date:today(),reps:pushupCount,seconds:Math.max(0,Math.floor((Date.now()-pushupStartedAt)/1000))});localStorage.setItem("level_pushup_sessions",JSON.stringify(arr.slice(0,100)))}catch(e){}}
-function closePushupCounter(){if(pushupStartedAt)savePushupSession();pushupCloseStream();document.getElementById("pushup-counter")?.remove()}
+function closePushupCounter(){if(pushupStartedAt)savePushupSession();pushupCloseStream();pushupStartedAt=0;document.getElementById("pushup-counter")?.remove()}
 function pushupStartCounting(){pushupMode="counting";pushupCount=0;pushupPhase="up";pushupLastCountAt=0;pushupStartedAt=Date.now();const prep=document.getElementById("pushup-prep");if(prep)prep.remove();const status=document.getElementById("pushup-status");if(status)status.textContent="Posizione alta · scendi"}
 function pushupCountdown(el){let n=3;const tick=()=>{if(!document.getElementById("pushup-counter")||!el)return;if(n>0){el.querySelector(".num").textContent=n;el.querySelector("small").textContent="Preparati";n--;setTimeout(tick,1000)}else{el.querySelector(".num").textContent="VIA";el.querySelector("small").textContent="Inizia i push-up";setTimeout(()=>{if(el.isConnected)el.remove();pushupStartCounting()},550)}};tick()}
 function pushupBeginCalibration(){
  const cal=document.getElementById("pushup-cal");if(!cal)return;
  cal.classList.add("show");pushupMode="calibration";pushupCalSamples=[];pushupBaseline=null;pushupDepth=null;
  let left=2;cal.querySelector(".num").textContent=left;
- const iv=setInterval(()=>{left--;if(!document.getElementById("pushup-counter")){clearInterval(iv);return}if(left>0)cal.querySelector(".num").textContent=left;else{clearInterval(iv);cal.querySelector(".num").textContent="VIA";cal.querySelector("p").textContent="Ora fai una discesa completa e risali lentamente.";setTimeout(()=>{if(cal)cal.classList.remove("show");pushupMode="calibration-move"},650)}},1000);
+ const iv=setInterval(()=>{left--;if(!document.getElementById("pushup-counter")){clearInterval(iv);return}if(left>0)cal.querySelector(".num").textContent=left;else{clearInterval(iv);cal.querySelector(".num").textContent="VIA";cal.querySelector("p").textContent="Ora fai 2 push-up completi: scendi e risali lentamente.";setTimeout(()=>{if(cal)cal.classList.remove("show");pushupMode="calibration-move"},650)}},1000);
 }
 function pushupMetric(r){
- const L=window.POSE_LANDMARKS||{LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_HIP:23,RIGHT_HIP:24};
- const s1=r.poseLandmarks[L.LEFT_SHOULDER],s2=r.poseLandmarks[L.RIGHT_SHOULDER],h1=r.poseLandmarks[L.LEFT_HIP],h2=r.poseLandmarks[L.RIGHT_HIP];
- if(!s1||!s2||!h1||!h2)return null;
- return (s1.y+s2.y+h1.y+h2.y)/4;
+ const L=window.POSE_LANDMARKS||{LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_ELBOW:13,RIGHT_ELBOW:14,LEFT_WRIST:15,RIGHT_WRIST:16};
+ const pts=[L.LEFT_SHOULDER,L.LEFT_ELBOW,L.LEFT_WRIST,L.RIGHT_SHOULDER,L.RIGHT_ELBOW,L.RIGHT_WRIST].map(i=>r.poseLandmarks[i]);
+ if(pts.some(p=>!p||p.visibility<.45))return null;
+ const a=pushupAngle(pts[0],pts[1],pts[2]),b=pushupAngle(pts[3],pts[4],pts[5]);
+ if(!Number.isFinite(a)||!Number.isFinite(b))return null;
+ const raw=(a+b)/2;
+ pushupMetricSmooth=pushupMetricSmooth==null?raw:(pushupMetricSmooth*.72+raw*.28);
+ return pushupMetricSmooth;
 }
 async function openPushupCounter(){
- closePushupCounter();pushupCount=0;pushupPhase="up";pushupBusy=false;pushupMode="countdown";pushupStartedAt=0;
- const wrap=document.createElement("div");wrap.id="pushup-counter";wrap.className="pushup-counter show";wrap.innerHTML=`<div class="pushup-card"><div class="pushup-head"><div><div class="eyebrow">LEVEL · PUSH UP</div><h2>Conta le ripetizioni</h2></div><button class="pushup-close" data-pushup-close>×</button></div><div class="pushup-stage"><video id="pushup-video" autoplay muted playsinline></video><canvas id="pushup-canvas"></canvas><div class="pushup-timer" id="pushup-timer">00:00</div><div class="pushup-count"><b id="pushup-number">0</b><span>RIPETIZIONI</span></div><div class="pushup-status" id="pushup-status">Preparati</div><div class="pushup-prep" id="pushup-prep"><div><div class="num">3</div><small>Preparati</small></div></div><div class="pushup-cal" id="pushup-cal"><div><div class="num">2</div><p>Prima volta: calibrazione. Mantieni la posizione alta.</p></div></div></div><div class="pushup-actions"><button class="secondary" data-pushup-close>Chiudi</button></div><p class="pushup-hint">Appoggia il telefono a terra davanti alla testa. La prima volta LEVEL calibra il tuo movimento e salva la calibrazione sul dispositivo.</p></div>`;document.body.appendChild(wrap);
+ closePushupCounter();pushupCount=0;pushupPhase="up";pushupBusy=false;pushupMode="countdown";pushupStartedAt=0;pushupMetricSmooth=null;
+ const wrap=document.createElement("div");wrap.id="pushup-counter";wrap.className="pushup-counter show";wrap.innerHTML=`<div class="pushup-card"><div class="pushup-head"><div><div class="eyebrow">LEVEL · PUSH UP</div><h2>Conta le ripetizioni</h2></div><button class="pushup-close" data-pushup-close>×</button></div><div class="pushup-stage"><video id="pushup-video" autoplay muted playsinline></video><canvas id="pushup-canvas"></canvas><div class="pushup-timer" id="pushup-timer">00:00</div><div class="pushup-count"><b id="pushup-number">0</b><span>RIPETIZIONI</span></div><div class="pushup-status" id="pushup-status">Preparati</div><div class="pushup-prep" id="pushup-prep"><div><div class="num">3</div><small>Preparati</small></div></div><div class="pushup-cal" id="pushup-cal"><div><div class="num">2</div><p>Prima volta: calibrazione. Fai 2 push-up completi.</p></div></div></div><div class="pushup-actions"><button class="secondary" data-pushup-close>Chiudi</button></div><p class="pushup-hint">Appoggia il telefono a terra davanti alla testa. La prima volta LEVEL calibra il tuo movimento e salva la calibrazione sul dispositivo.</p></div>`;document.body.appendChild(wrap);
  try{
   pushupStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:960}},audio:false});
   const video=document.getElementById("pushup-video");video.srcObject=pushupStream;await video.play();
@@ -655,21 +659,21 @@ async function openPushupCounter(){
    if(pushupMode==="calibration"){
      pushupCalSamples.push(metric);
      if(pushupCalSamples.length>12){
-       const base=Math.min(...pushupCalSamples),deep=Math.max(...pushupCalSamples);
-       if(deep-base>.045){pushupBaseline=base;pushupDepth=deep;localStorage.setItem("level_pushup_calibration",JSON.stringify({baseline:base,depth:deep,version:2}));pushupMode="counting";pushupStartedAt=Date.now();if(status)status.textContent="Calibrazione completata · vai"}
+       const base=Math.max(...pushupCalSamples),deep=Math.min(...pushupCalSamples);
+       if(base-deep>22){pushupBaseline=base;pushupDepth=deep;localStorage.setItem("level_pushup_calibration",JSON.stringify({baseline:base,depth:deep,version:3}));pushupMode="counting";pushupPhase="up";pushupLastCountAt=Date.now();pushupStartedAt=Date.now();if(status)status.textContent="Calibrazione completata · vai"}
      }
      return;
    }
    if(pushupMode!=="counting"||!Number.isFinite(pushupBaseline)||!Number.isFinite(pushupDepth))return;
-   const range=Math.max(.045,pushupDepth-pushupBaseline),downT=pushupBaseline+range*.62,upT=pushupBaseline+range*.25,now=Date.now();
-   if(metric>=downT&&pushupPhase==="up"){pushupPhase="down";if(status)status.textContent="Posizione bassa ✓"}
-   else if(metric<=upT&&pushupPhase==="down"&&now-pushupLastCountAt>850){pushupPhase="up";pushupLastCountAt=now;pushupCount++;const n=document.getElementById("pushup-number");if(n)n.textContent=pushupCount;if(status)status.textContent=`Ripetizione ${pushupCount} ✓`}
-   else if(metric<upT&&pushupPhase==="up"){if(status)status.textContent="Posizione alta · scendi"}
+   const range=Math.max(22,pushupBaseline-pushupDepth),downT=pushupBaseline-range*.58,upT=pushupBaseline-range*.20,now=Date.now();
+   if(metric<=downT&&pushupPhase==="up"){pushupPhase="down";if(status)status.textContent="Posizione bassa ✓"}
+   else if(metric>=upT&&pushupPhase==="down"&&now-pushupLastCountAt>700){pushupPhase="up";pushupLastCountAt=now;pushupCount++;const n=document.getElementById("pushup-number");if(n)n.textContent=pushupCount;if(status)status.textContent=`Ripetizione ${pushupCount} ✓`}
+   else if(metric>upT&&pushupPhase==="up"){if(status)status.textContent="Posizione alta · scendi"}
   });
   const loop=async()=>{if(!document.getElementById("pushup-counter")||!pushupPose)return;if(!pushupBusy&&video.readyState>=2){pushupBusy=true;try{await pushupPose.send({image:video})}catch(e){}pushupBusy=false}pushupRAF=requestAnimationFrame(loop)};loop();
   const timer=()=>{const el=document.getElementById("pushup-timer");if(!el||!document.getElementById("pushup-counter"))return;el.textContent=guidedFormat(pushupStartedAt?((Date.now()-pushupStartedAt)/1000):0);pushupTimerRAF=requestAnimationFrame(timer)};pushupTimerRAF=requestAnimationFrame(timer);
   pushupCountdown(document.getElementById("pushup-prep"));
-  if(!saved||!Number.isFinite(saved.baseline)||!Number.isFinite(saved.depth))setTimeout(()=>{if(document.getElementById("pushup-counter"))pushupBeginCalibration()},3550);
+  if(!saved||!Number.isFinite(saved.baseline)||!Number.isFinite(saved.depth)||saved.version<3)setTimeout(()=>{if(document.getElementById("pushup-counter"))pushupBeginCalibration()},3550);
   else{pushupBaseline=saved.baseline;pushupDepth=saved.depth}
  }catch(err){document.getElementById("pushup-status").textContent=err?.name==="NotAllowedError"?"Consenti l'accesso alla fotocamera per usare il conteggio.":"Fotocamera non disponibile su questo dispositivo."}
 }

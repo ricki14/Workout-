@@ -962,9 +962,14 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
 #levelPushupCounter .lpc-start{border:0;border-radius:16px;padding:15px 24px;background:#ff5a00;color:#fff;font-size:16px;font-weight:800;box-shadow:0 10px 30px rgba(255,90,0,.25)}
 #levelPushupCounter .lpc-hint{font-size:12px;color:#777;margin-top:10px}
 @media(max-width:600px){#levelPushupCounter .lpc-video{margin-top:14px}#levelPushupCounter .lpc-wrap{padding-left:14px;padding-right:14px}}
+#levelPushupCounter .lpc-countdown{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,5,5,.82);backdrop-filter:blur(10px)}
+#levelPushupCounter .lpc-countdown.open{display:flex}
+#levelPushupCounter .lpc-countdown-num{font-size:clamp(110px,34vw,180px);font-weight:850;line-height:.8;color:#ff5a00;font-variant-numeric:tabular-nums;letter-spacing:-.08em}
+#levelPushupCounter .lpc-countdown-label{margin-top:22px;font-size:15px;color:#aaa;letter-spacing:.08em}
 </style>
 
 <div id="levelPushupCounter" aria-hidden="true">
+  <div class="lpc-countdown" id="lpcCountdown"><div class="lpc-countdown-num" id="lpcCountdownNum">3</div><div class="lpc-countdown-label">PREPARATI</div></div>
   <div class="lpc-wrap">
     <div class="lpc-top">
       <button class="lpc-close" id="lpcClose" aria-label="Chiudi">×</button>
@@ -1053,9 +1058,25 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
     try{
       const ok=await loadPose();if(!ok)return;
       stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}},audio:false});
-      video.srcObject=stream;await video.play();running=true;startedAt=Date.now();startBtn.style.display='none';
-      statusEl.textContent='Pronto. Fai una ripetizione completa: giù e poi su.';loop();
+      video.srcObject=stream;await video.play();startBtn.style.display='none';
+      statusEl.textContent='Preparati: hai 3 secondi per metterti in posizione.';
+      await countdown();
+      if(!modal.classList.contains('open'))return;
+      reset(); running=true; startedAt=Date.now();
+      statusEl.textContent='VIA — fai una ripetizione completa: giù e poi su.';loop();
     }catch(e){statusEl.textContent='Consenti l’accesso alla fotocamera per iniziare.'}
+  }
+  function countdown(){
+    const box=document.getElementById('lpcCountdown'), num=document.getElementById('lpcCountdownNum');
+    box.classList.add('open');
+    return new Promise(resolve=>{
+      let n=3; num.textContent=n;
+      const tick=()=>{ if(!modal.classList.contains('open')){box.classList.remove('open');resolve();return}
+        n--; if(n>0){num.textContent=n;setTimeout(tick,1000)}
+        else {num.textContent='VIA';setTimeout(()=>{box.classList.remove('open');resolve()},500)}
+      };
+      setTimeout(tick,1000);
+    });
   }
   async function loop(){
     if(!running)return;

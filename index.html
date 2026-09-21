@@ -1128,5 +1128,56 @@ sb.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){state.user=s
 </div>
 
 
+
+<style id="level-live-notification-v42">
+#levelNotifBanner{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(16px);z-index:100000;display:none;width:min(92vw,420px);padding:12px 14px;border-radius:16px;background:rgba(20,20,20,.94);color:#fff;box-shadow:0 12px 40px rgba(0,0,0,.22);font-size:13px;backdrop-filter:blur(18px)}
+#levelNotifBanner.show{display:block;animation:levelNotifIn .22s ease-out forwards}
+#levelNotifBanner b{color:#ff5a00}.ln-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.ln-btn{border:0;background:#ff5a00;color:#fff;border-radius:10px;padding:7px 10px;font-weight:700}.ln-sub{color:#aaa;margin-top:3px;font-size:11px}
+@keyframes levelNotifIn{to{transform:translateX(-50%) translateY(0)}}
+</style>
+<div id="levelNotifBanner" aria-live="polite"><div class="ln-row"><div><b>LEVEL</b><div class="ln-sub" id="levelNotifBannerText">Notifiche allenamento</div></div><button class="ln-btn" id="levelNotifEnable">Attiva</button></div></div>
+<script id="level-live-notification-v42-js">
+(function(){
+  const KEY='level_guided_notifications_v1';
+  let lastText='';
+  function supported(){return 'Notification' in window}
+  function permission(){return supported()?Notification.permission:'denied'}
+  function show(text){
+    if(!supported() || permission()!=='granted') return;
+    try{
+      const opts={body:text,icon:'apple-touch-icon.png',badge:'favicon.png',tag:'level-guided-workout',renotify:false,silent:true,data:{type:'guided-workout'}};
+      // Updating a notification with the same tag is supported by service-worker notifications,
+      // but browsers may keep the previous instance. This is best-effort on the web platform.
+      if(navigator.serviceWorker && navigator.serviceWorker.ready){
+        navigator.serviceWorker.ready.then(r=>r.showNotification('LEVEL · Allenamento',opts)).catch(()=>new Notification('LEVEL · Allenamento',opts));
+      } else new Notification('LEVEL · Allenamento',opts);
+    }catch(e){}
+  }
+  function setText(text){
+    if(!text || text===lastText)return; lastText=text;
+    localStorage.setItem(KEY,'1'); show(text);
+  }
+  window.levelTrainingNotification=function(text){setText(text)};
+  window.levelRequestTrainingNotifications=async function(){
+    if(!supported()) return false;
+    try{const r=await Notification.requestPermission();if(r==='granted'){localStorage.setItem(KEY,'1');return true}}catch(e){}
+    return false;
+  };
+  // Notification opt-in banner is only shown while the guided workout is open.
+  function guidedOpen(){return !!document.querySelector('.guided-overlay.open,.guided-sheet.open,[class*="guided"].open')}
+  function maybeBanner(){
+    if(!guidedOpen() || !supported() || permission()==='granted' || sessionStorage.getItem('levelNotifBannerShown')) return;
+    const b=document.getElementById('levelNotifBanner'); if(!b)return;
+    b.classList.add('show'); sessionStorage.setItem('levelNotifBannerShown','1');
+  }
+  document.addEventListener('click',e=>{
+    if(e.target.closest('#levelNotifEnable')){
+      window.levelRequestTrainingNotifications().then(ok=>{document.getElementById('levelNotifBanner')?.classList.remove('show')});
+    }
+  });
+  setInterval(maybeBanner,700);
+})();
+</script>
+
 </body>
 </html>

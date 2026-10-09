@@ -711,8 +711,12 @@ function ptClientDetail(){
  const historicalIds=[...new Set(records.flatMap(r=>Object.keys(r.loads&&typeof r.loads==="object"?r.loads:{})))];
  // Recupera i nomi anche dalle schede archiviate: i record storici conservano gli ID originali.
  const historicalNames=new Map();
+ // Fallback per gli ID storici della scheda predefinita: i record salvano l'ID, non sempre il nome.
+ for(const [day,def] of Object.entries(DEFAULT_DAYS||{})) for(const item of (def.items||[])) if(item[0]&&item[1]) historicalNames.set(String(item[0]),{name:item[1],day:Number(day)});
  for(const h of (state.ptPlanHistory||[])) for(const d of (h.plan?.days||[])) for(const e of (d.exercises||[])) if(e.id!=null&&e.name) historicalNames.set(String(e.id),{name:e.name,day:d.id??d.name??"—"});
- for(const r of records) for(const [id,value] of Object.entries(r.loads&&typeof r.loads==="object"?r.loads:{})){const entry=value&&typeof value==="object"?value:{weight:value};if(entry.exercise_name&&!historicalNames.has(String(id)))historicalNames.set(String(id),{name:entry.exercise_name,day:"Storico"});}
+ for(const r of records) for(const [id,value] of Object.entries(r.loads&&typeof r.loads==="object"?r.loads:{})){const entry=value&&typeof value==="object"?value:{weight:value};const embeddedName=entry.exercise_name||entry.exerciseName||entry.name;
+ if(embeddedName&&!historicalNames.has(String(id)))historicalNames.set(String(id),{name:embeddedName,day:"Storico"});}
+ for(const e of planExs) if(e.id!=null&&e.name) historicalNames.set(String(e.id),{name:e.name,day:e.day??"—"});
  const currentIds=new Set(planExs.map(e=>String(e.id)));
  const exs=[...planExs,...historicalIds.filter(id=>!currentIds.has(String(id))).map(id=>{const old=historicalNames.get(String(id));return {id,name:old?.name||"Esercizio storico · nome non disponibile",day:old?.day??"Storico"};})];
  const selected=exs.find(e=>String(e.id)===String(state.ptChartId))||exs[0];

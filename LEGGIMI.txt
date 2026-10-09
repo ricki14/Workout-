@@ -1,15 +1,5 @@
-LEVEL v55 — nomi degli esercizi storici
+LEVEL — Grafico progressi stile Apple Salute
 
-AGGIORNAMENTO
-1. Sostituisci index.html nel repository GitHub con quello incluso in questo pacchetto.
-2. Pubblica le modifiche (commit e push).
-3. Ricarica LEVEL.
+Modifica: il grafico dei carichi usa una linea arancione più pulita, un leggero riempimento sfumato, griglie ridotte e il carico più recente in evidenza. Il resto della sezione Progressi e i dati restano invariati.
 
-SQL
-Non serve eseguire nuovamente LEVEL_PT_SETUP.sql per questa modifica.
-
-COSA CAMBIA
-- I nuovi allenamenti salvano anche il nome dell'esercizio dentro il record del carico.
-- La pagina PT recupera il nome dai record più recenti, dalle schede correnti e da quelle archiviate.
-- Per i vecchi record per cui il nome non è mai stato salvato e non esiste più una scheda che lo contenga, viene mostrata una descrizione chiara invece di un ID tecnico. Il nome originale non può essere ricostruito con certezza se non è presente in nessuna copia della scheda.
-- Lo storico delle schede continuerà ad archiviare la scheda corrente quando il PT salva una scheda diversa. Le versioni precedenti a quando è stato attivato l'archivio non vengono create automaticamente.
+Installazione: sostituisci index.html nel repository GitHub Pages. Mantieni gli altri file già presenti. sw.js è incluso solo per coerenza con la versione precedente; non è necessario sostituirlo per il solo restyling del grafico.

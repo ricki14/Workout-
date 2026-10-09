@@ -1,12 +1,8 @@
-LEVEL v53 — grafico più leggibile e archivio schede PT
+LEVEL v54
 
-1. Sostituisci index.html nel repository GitHub con il nuovo index.html e fai commit/push.
-2. In Supabase > SQL Editor, incolla ed esegui TUTTO il file LEVEL_PT_SETUP.sql aggiornato.
-   Lo script aggiunge l'archivio delle schede e una funzione per leggerlo.
-3. Ricarica LEVEL dopo la pubblicazione.
+Correzione: nella pagina PT i carichi storici cercano il nome dell'esercizio anche nelle schede archiviate dell'atleta, invece di mostrare sempre “Esercizio salvato (codice)”. Gli ID senza corrispondenza restano visibili con un'etichetta neutra.
 
-Comportamento:
-- Il grafico PT mostra riepilogo dell'ultimo carico, variazione rispetto alla sessione precedente e numero di rilevazioni.
-- Quando si salva una scheda diversa, la precedente viene archiviata in Supabase.
-- Le schede archiviate si possono riutilizzare; il ripristino archivia la scheda corrente se è diversa.
-- Gli allenamenti e i carichi registrati non vengono cancellati.
+Aggiornamento:
+1. Sostituisci index.html nel repository GitHub.
+2. Pubblica le modifiche.
+3. Non è necessario eseguire SQL: questa correzione riguarda soltanto l'interfaccia.

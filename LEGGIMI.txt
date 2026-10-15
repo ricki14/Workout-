@@ -1,3 +1,1 @@
-LEVEL — Correzione grafico tempo/peso
-
-Il grafico usa le date reali sull'asse X, proporzionate all'intervallo temporale, e mostra etichette delle date sotto i punti. Il carico più recente resta nel riepilogo sopra il grafico. Sostituire index.html nel repository GitHub Pages, mantenendo gli altri file.
+Grafico tempo/peso corretto: asse X basato sulle date reali, tacche temporali, asse Y in kg e carico più recente nel riepilogo. Sostituisci index.html nel repository GitHub.

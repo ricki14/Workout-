@@ -1,5 +1,3 @@
-LEVEL — Grafico progressi stile Apple Salute
+LEVEL — Correzione grafico tempo/peso
 
-Modifica: il grafico dei carichi usa una linea arancione più pulita, un leggero riempimento sfumato, griglie ridotte e il carico più recente in evidenza. Il resto della sezione Progressi e i dati restano invariati.
-
-Installazione: sostituisci index.html nel repository GitHub Pages. Mantieni gli altri file già presenti. sw.js è incluso solo per coerenza con la versione precedente; non è necessario sostituirlo per il solo restyling del grafico.
+Il grafico usa le date reali sull'asse X, proporzionate all'intervallo temporale, e mostra etichette delle date sotto i punti. Il carico più recente resta nel riepilogo sopra il grafico. Sostituire index.html nel repository GitHub Pages, mantenendo gli altri file.

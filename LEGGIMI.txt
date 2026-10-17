@@ -1,1 +1,6 @@
-Grafico tempo/peso corretto: asse X basato sulle date reali, tacche temporali, asse Y in kg e carico più recente nel riepilogo. Sostituisci index.html nel repository GitHub.
+LEVEL — Esporta riepilogo scheda
+
+Aggiunge sotto i pulsanti principali della schermata Allenamento un collegamento discreto: “Esporta riepilogo scheda”.
+Il riepilogo stampabile/PDF mostra la scheda organizzata per giorno, serie/ripetizioni, recupero e per ogni esercizio il primo carico registrato e quello più recente, con data e modalità totale/per lato.
+
+Per applicarlo, sostituire index.html nel repository GitHub Pages. Mantenere gli altri file esistenti. L'esportazione apre una pagina stampabile: usare “Salva / condividi PDF” e scegliere la destinazione disponibile nel browser/dispositivo.

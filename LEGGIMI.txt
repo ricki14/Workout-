@@ -1,6 +1,8 @@
-LEVEL — Esporta riepilogo scheda
+LEVEL — Salvataggio progressivo e note ricordate
 
-Aggiunge sotto i pulsanti principali della schermata Allenamento un collegamento discreto: “Esporta riepilogo scheda”.
-Il riepilogo stampabile/PDF mostra la scheda organizzata per giorno, serie/ripetizioni, recupero e per ogni esercizio il primo carico registrato e quello più recente, con data e modalità totale/per lato.
+- Salvataggio automatico temporaneo dei carichi e delle note mentre li inserisci, per utente/giorno/data sul dispositivo.
+- Il pulsante Salva unisce gli esercizi al record già presente per lo stesso giorno, evitando di sovrascrivere gli esercizi salvati in precedenza.
+- Se lo stesso esercizio ha un carico differente, chiede quale valore mantenere.
+- Le note con “Ricorda questa nota” vengono precompilate nel menu dell’esercizio nei successivi allenamenti; possono essere modificate e salvate come nuova nota ricordata.
 
-Per applicarlo, sostituire index.html nel repository GitHub Pages. Mantenere gli altri file esistenti. L'esportazione apre una pagina stampabile: usare “Salva / condividi PDF” e scegliere la destinazione disponibile nel browser/dispositivo.
+Installazione: sostituisci index.html nel repository GitHub Pages. Mantieni gli altri file esistenti.

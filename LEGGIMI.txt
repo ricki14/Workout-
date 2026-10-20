@@ -1,8 +1,13 @@
-LEVEL — Salvataggio progressivo e note ricordate
+LEVEL — Fix CSS visibile e notifiche
 
-- Salvataggio automatico temporaneo dei carichi e delle note mentre li inserisci, per utente/giorno/data sul dispositivo.
-- Il pulsante Salva unisce gli esercizi al record già presente per lo stesso giorno, evitando di sovrascrivere gli esercizi salvati in precedenza.
-- Se lo stesso esercizio ha un carico differente, chiede quale valore mantenere.
-- Le note con “Ricorda questa nota” vengono precompilate nel menu dell’esercizio nei successivi allenamenti; possono essere modificate e salvate come nuova nota ricordata.
+Correzione:
+- Il CSS delle notifiche era rimasto fuori da un tag <style> e veniva mostrato come testo nella pagina.
+- Ora il CSS è racchiuso nel proprio blocco <style>.
+- La regola mantiene le notifiche sopra la barra di navigazione fissa su mobile.
 
-Installazione: sostituisci index.html nel repository GitHub Pages. Mantieni gli altri file esistenti.
+Come applicare:
+1. Estrai lo ZIP.
+2. Sostituisci index.html nel repository GitHub con quello incluso.
+3. Non modificare le altre impostazioni.
+4. Fai commit/push e attendi la pubblicazione di GitHub Pages.
+5. Su iPhone chiudi completamente LEVEL e riaprilo. Se resta la vecchia versione, rimuovi e reinstalla la web app oppure svuota i dati del sito in Safari.
